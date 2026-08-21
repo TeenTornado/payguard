@@ -1,0 +1,41 @@
+{
+  "sample_id": "gen-flask_wi1_vuln-v4",
+  "repo_id": "repo-flask_wi1_vuln-v4",
+  "language": "python",
+  "framework": "flask",
+  "source": "SEEDED_VARIANT",
+  "labels": [
+    {
+      "defect_class": "WEBHOOK_INTEGRITY",
+      "lines": [
+        [
+          30,
+          37
+        ]
+      ],
+      "scenario_ids": [
+        "WI-1"
+      ]
+    },
+    {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "lines": [
+        [
+          30,
+          37
+        ]
+      ],
+      "scenario_ids": [
+        "DP-2"
+      ]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 1,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Generated from template flask_wi1_vuln, variant 4",
+  "license": "MIT",
+  "seed": "flask_wi1_vuln-v4",
+  "file": "app.py"
+}

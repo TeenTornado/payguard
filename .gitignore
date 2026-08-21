@@ -15,10 +15,10 @@ node_modules/
 .next/
 .DS_Store
 *.pkl
-dataset/llm_cache/*.json
+# LLM cache — subdirs are committed (demo-replay without live key)
+# Only direct *.json files at the root are excluded (there are none)
 !dataset/llm_cache/.gitkeep
-eval/reports/*.json
-!eval/reports/ledger.jsonl
-!eval/reports/.gitkeep
+# Legacy reports directory (pre-v2); new reports go to eval/reports/dev/ and eval/reports/test/
+reports/
 *.log
 docker-compose.override.yml

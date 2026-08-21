@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-ac-server-computed",
+  "repo_id": "hn-ac-server-computed",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 3,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: amount computed entirely server-side from trusted catalog (price_paise). User input specifies sku and quantity only — no user-supplied amount. LLM might flag AC seeing data.get() and quantity from request, but should recognize amount comes from CATALOG not user input.",
+  "license": "MIT",
+  "file": "app.py"
+}

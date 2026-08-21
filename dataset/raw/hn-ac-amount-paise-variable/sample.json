@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-ac-amount-paise-variable",
+  "repo_id": "hn-ac-amount-paise-variable",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 3,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: amount variable is named amount_paise and pulled from catalog key price_paise — already in paise, no conversion needed. LLM might flag AC if it sees product price lookup without explicit *100, not realizing the catalog stores paise directly.",
+  "license": "MIT",
+  "file": "app.py"
+}

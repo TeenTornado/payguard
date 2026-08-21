@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-dp-imported-util",
+  "repo_id": "hn-dp-imported-util",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 4,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: idempotency dedup logic is abstracted into is_idempotent_request()/mark_processed() helpers (simulating an imported utility). LLM may not trust the helper function names as a real dedup mechanism, or may not follow the call chain. Static rules with broad patterns should find the lookup.",
+  "license": "MIT",
+  "file": "app.py"
+}

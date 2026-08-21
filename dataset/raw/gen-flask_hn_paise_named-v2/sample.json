@@ -1,0 +1,16 @@
+{
+  "sample_id": "gen-flask_hn_paise_named-v2",
+  "repo_id": "repo-flask_hn_paise_named-v2",
+  "language": "python",
+  "framework": "flask",
+  "source": "SEEDED_VARIANT",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 3,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Generated from template flask_hn_paise_named, variant 2",
+  "license": "MIT",
+  "seed": "flask_hn_paise_named-v2",
+  "file": "app.py"
+}

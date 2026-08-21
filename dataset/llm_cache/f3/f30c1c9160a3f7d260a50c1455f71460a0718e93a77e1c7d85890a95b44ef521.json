@@ -1,0 +1,1 @@
+{"analysis": {"findings": [], "analysis_notes": "The provided helper function only performs logging and contains no Razorpay API calls, webhook verification, or amount conversions."}}

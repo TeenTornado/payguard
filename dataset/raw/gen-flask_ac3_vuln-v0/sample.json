@@ -1,0 +1,29 @@
+{
+  "sample_id": "gen-flask_ac3_vuln-v0",
+  "repo_id": "repo-flask_ac3_vuln-v0",
+  "language": "python",
+  "framework": "flask",
+  "source": "SEEDED_VARIANT",
+  "labels": [
+    {
+      "defect_class": "AMOUNT_CURRENCY",
+      "lines": [
+        [
+          31,
+          38
+        ]
+      ],
+      "scenario_ids": [
+        "AC-3"
+      ]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 2,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Generated from template flask_ac3_vuln, variant 0",
+  "license": "MIT",
+  "seed": "flask_ac3_vuln-v0",
+  "file": "app.py"
+}

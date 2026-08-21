@@ -1,0 +1,1 @@
+{"analysis": {"findings": [], "analysis_notes": "No payment-related code found in the provided snippet. The `health` function is a simple health check endpoint and does not interact with Razorpay or payment processing."}}

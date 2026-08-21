@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-wi-env-webhook-secret",
+  "repo_id": "hn-wi-env-webhook-secret",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 3,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Safe template with all WI mitigations in separate code paths: HMAC secret from env, raw bytes body, compare_digest constant-time comparison, event_id dedup via dict. Tests whether LLM correctly identifies all mitigations even when they span multiple lines/paths.",
+  "license": "MIT",
+  "file": "app.py"
+}

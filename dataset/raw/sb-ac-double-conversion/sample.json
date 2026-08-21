@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-ac-double-conversion",
+  "repo_id": "sb-ac-double-conversion",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "AMOUNT_CURRENCY",
+      "lines": [[25, 30]],
+      "scenario_ids": ["AC-1"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 5,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: static AC rules find 'amount_inr * 100' in calculate_order_amount() (line 21) and classify it as correct INR-to-paise conversion. They do not detect that apply_discount() receives paise but treats it as INR and multiplies by 100 again (line 29). Result: 100x inflated charge. Static rules see one multiply-by-100 and pass.",
+  "license": "MIT",
+  "file": "app.py"
+}

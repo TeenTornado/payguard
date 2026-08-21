@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-dp-race-condition",
+  "repo_id": "sb-dp-race-condition",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "lines": [[24, 31]],
+      "scenario_ids": ["DP-1"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 5,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: TOCTOU race in create_order. Static rules see 'if cart_id in _orders' (line 24) and conclude dedup is present. Bug: two concurrent requests both pass the check before either writes, resulting in two client.order.create() calls and duplicate Razorpay orders. Fix: use a DB transaction with SELECT FOR UPDATE or a Redis lock.",
+  "license": "MIT",
+  "file": "app.py"
+}

@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-dp-celery-dedup",
+  "repo_id": "hn-dp-celery-dedup",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 4,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: fulfillment dedup via Celery task_id (apply_async with task_id=order_id). Celery broker discards tasks with duplicate task_ids. LLM may flag as 'no dedup in webhook handler' because the dedup is in the Celery layer, not an explicit check in the handler body.",
+  "license": "MIT",
+  "file": "app.py"
+}

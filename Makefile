@@ -34,19 +34,38 @@ typecheck:
 	$(PYTHON) -m mypy payguard/shared/ payguard/verifier/ --strict
 
 dataset:
-	$(PYTHON) -m payguard.dataset.generate
+	$(PYTHON) -m payguard.dataset generate 5
+	$(PYTHON) -m payguard.dataset split
 
 eval-dev:
-	@echo "Running evaluation on validation split..."
+	@echo "Running evaluation on validation split → eval/reports/dev/"
 	$(PYTHON) -m payguard.eval.run --split val
 
+eval-dev-b:
+	@echo "Running System B evaluation on validation split → eval/reports/dev/"
+	$(PYTHON) -m payguard.eval.run --split val --system B
+
+eval-dev-c:
+	@echo "Running System C evaluation on validation split → eval/reports/dev/"
+	$(PYTHON) -m payguard.eval.run --split val --system C
+
+eval-dev-all:
+	@echo "Running A/B/C evaluation on validation split → eval/reports/dev/"
+	$(PYTHON) -m payguard.eval.run --split val --system A
+	$(PYTHON) -m payguard.eval.run --split val --system B
+	$(PYTHON) -m payguard.eval.run --split val --system C
+
 eval:
-	@echo "Running evaluation on TEST split — appending to ledger..."
+	@echo "Running evaluation on TEST split — appending to eval/reports/test/eval_ledger.jsonl"
 	$(PYTHON) -m payguard.eval.run --split test
 
 eval-smoke:
 	@echo "Running smoke eval (5 samples)..."
 	$(PYTHON) -m payguard.eval.run --split val --max-samples 5
+
+llm-doctor:
+	@echo "Probing configured LLM profiles..."
+	$(PYTHON) -m payguard.cli llm doctor
 
 audit-verify:
 	$(PYTHON) -m payguard.shared.audit_verify

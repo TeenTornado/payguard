@@ -1,0 +1,85 @@
+{
+  "version": "1",
+  "samples": [
+    {
+      "sample_id": "gen-flask_ac1_vuln-v4",
+      "repo_id": "repo-flask_ac1_vuln-v4",
+      "content_hash": "3439740cee4d9e09",
+      "labels": [
+        "AMOUNT_CURRENCY"
+      ]
+    },
+    {
+      "sample_id": "gen-flask_ac3_vuln-v0",
+      "repo_id": "repo-flask_ac3_vuln-v0",
+      "content_hash": "56dde0f722df287e",
+      "labels": [
+        "AMOUNT_CURRENCY"
+      ]
+    },
+    {
+      "sample_id": "gen-flask_ac3_vuln-v2",
+      "repo_id": "repo-flask_ac3_vuln-v2",
+      "content_hash": "56dde0f722df287e",
+      "labels": [
+        "AMOUNT_CURRENCY"
+      ]
+    },
+    {
+      "sample_id": "gen-flask_hn_paise_named-v4",
+      "repo_id": "repo-flask_hn_paise_named-v4",
+      "content_hash": "1dca33d25424692e",
+      "labels": []
+    },
+    {
+      "sample_id": "gen-flask_wi1_vuln-v0",
+      "repo_id": "repo-flask_wi1_vuln-v0",
+      "content_hash": "e3b7d62359a2553d",
+      "labels": [
+        "WEBHOOK_INTEGRITY",
+        "DUPLICATE_PAYMENT"
+      ]
+    },
+    {
+      "sample_id": "gen-flask_wi1_vuln-v3",
+      "repo_id": "repo-flask_wi1_vuln-v3",
+      "content_hash": "e3b7d62359a2553d",
+      "labels": [
+        "WEBHOOK_INTEGRITY",
+        "DUPLICATE_PAYMENT"
+      ]
+    },
+    {
+      "sample_id": "hn-ac-decimal-math",
+      "repo_id": "hn-ac-decimal-math",
+      "content_hash": "1c09df4f753471c8",
+      "labels": []
+    },
+    {
+      "sample_id": "hn-dp-redis-dedup",
+      "repo_id": "hn-dp-redis-dedup",
+      "content_hash": "c24ffa4f672fb786",
+      "labels": []
+    },
+    {
+      "sample_id": "hn-wi-compare-digest",
+      "repo_id": "hn-wi-compare-digest",
+      "content_hash": "594e219460f83c2c",
+      "labels": []
+    },
+    {
+      "sample_id": "hn-wi-env-webhook-secret",
+      "repo_id": "hn-wi-env-webhook-secret",
+      "content_hash": "3832687bd6417632",
+      "labels": []
+    },
+    {
+      "sample_id": "sb-dp-callchain",
+      "repo_id": "sb-dp-callchain",
+      "content_hash": "b7b726bb84a4176a",
+      "labels": [
+        "DUPLICATE_PAYMENT"
+      ]
+    }
+  ]
+}

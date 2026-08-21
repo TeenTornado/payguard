@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-ac-module-boundary",
+  "repo_id": "sb-ac-module-boundary",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "AMOUNT_CURRENCY",
+      "lines": [[33, 34]],
+      "scenario_ids": ["AC-1"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 5,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: static AC rules look for 'amount_inr * 100' near the Razorpay API call. Here the multiply is 'price * 100' in create_razorpay_order() (line 33), which looks correct (INR->paise). But get_product_price() already returns paise (catalog stores paise under the misleading key 'price_inr'). Static rules cannot infer the return type semantics of get_product_price() from its name alone. Result: 100x overcharge.",
+  "license": "MIT",
+  "file": "app.py"
+}

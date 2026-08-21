@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-dp-dedup-resets",
+  "repo_id": "sb-dp-dedup-resets",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "lines": [[15, 15]],
+      "scenario_ids": ["DP-2"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 4,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: webhook dedup uses module-level set _processed_events. Static rules see the set lookup (line 44) and the .add() (line 46) and classify as safe. Bug: set is lost on process restart — replayed events get reprocessed. Fix: persist event IDs in a database.",
+  "license": "MIT",
+  "file": "app.py"
+}

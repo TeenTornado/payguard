@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-dp-db-unique",
+  "repo_id": "hn-dp-db-unique",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 4,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: no explicit dedup check before client.order.create(); dedup is enforced by DB UNIQUE constraint on receipt. LLM may flag as missing dedup because the pre-check is absent. IntegrityError catch returns the existing order instead.",
+  "license": "MIT",
+  "file": "app.py"
+}

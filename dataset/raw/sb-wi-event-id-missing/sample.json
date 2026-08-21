@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-wi-event-id-missing",
+  "repo_id": "sb-wi-event-id-missing",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "WEBHOOK_INTEGRITY",
+      "lines": [[35, 50]],
+      "scenario_ids": ["WI-3"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 4,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: Razorpay HMAC signature is correctly verified (line 38-41), so static WI-R1 passes. Bug: no event_id dedup — the same valid signed event can be replayed indefinitely, each time re-fulfilling the order. Static WI rules only check for signature verification presence, not for replay-attack guards (event_id tracking).",
+  "license": "MIT",
+  "file": "app.py"
+}

@@ -1,0 +1,1 @@
+{"analysis": {"findings": [], "analysis_notes": "The provided code snippet for the 'health' function does not contain any payment-related logic or Razorpay integration. Therefore, no defects from the target classes (DUPLICATE_PAYMENT, WEBHOOK_INTEGRITY, AMOUNT_CURRENCY) can be identified."}}

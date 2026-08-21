@@ -1,0 +1,52 @@
+{
+  "system": "A",
+  "split": "val",
+  "tau": 0.45,
+  "n_samples": 7,
+  "llm_status": "OK",
+  "llm_unavailable_reason": "",
+  "provider_model": "",
+  "provider_name": "",
+  "llm_cache_hits": 0,
+  "llm_api_calls": 0,
+  "errors": [],
+  "macro": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "per_class": {
+    "DUPLICATE_PAYMENT": {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "WEBHOOK_INTEGRITY": {
+      "defect_class": "WEBHOOK_INTEGRITY",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 6,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "AMOUNT_CURRENCY": {
+      "defect_class": "AMOUNT_CURRENCY",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "generated_at": "20260821T083924Z",
+  "report_dir": "eval/reports/dev"
+}

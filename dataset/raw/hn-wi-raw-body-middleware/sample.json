@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-wi-raw-body-middleware",
+  "repo_id": "hn-wi-raw-body-middleware",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 4,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: signature verification is in a helper function verify_razorpay_signature() called at the top of the webhook route. LLM scanning only the route body may miss the call and flag as 'no signature check'. Uses request.get_data() for raw bytes and hmac.compare_digest.",
+  "license": "MIT",
+  "file": "app.py"
+}

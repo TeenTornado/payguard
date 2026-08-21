@@ -1,0 +1,29 @@
+{
+  "sample_id": "gen-flask_dp2_vuln-v2",
+  "repo_id": "repo-flask_dp2_vuln-v2",
+  "language": "python",
+  "framework": "flask",
+  "source": "SEEDED_VARIANT",
+  "labels": [
+    {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "lines": [
+        [
+          32,
+          42
+        ]
+      ],
+      "scenario_ids": [
+        "DP-2"
+      ]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 2,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Generated from template flask_dp2_vuln, variant 2",
+  "license": "MIT",
+  "seed": "flask_dp2_vuln-v2",
+  "file": "app.py"
+}

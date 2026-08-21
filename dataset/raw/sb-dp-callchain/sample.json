@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-dp-callchain",
+  "repo_id": "sb-dp-callchain",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "lines": [[30, 36]],
+      "scenario_ids": ["DP-2"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 5,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: the webhook handler body has no event_id variable or dict lookup, so static DP-R3 rules do not fire. Dedup responsibility is delegated to fulfill_order() via handle_payment_captured(), but fulfill_order() deduplicates on order_id (not event_id) and doesn't guard against two different events fulfilling the same order twice. Static rules cannot follow the call chain across functions.",
+  "license": "MIT",
+  "file": "app.py"
+}

@@ -24,9 +24,13 @@ make migrate      # alembic upgrade head
 make test         # pytest unit + integration
 make lint         # ruff check
 make typecheck    # mypy
-make eval-dev     # eval on validation split only
-make eval         # eval on test split, appends to ledger
+make eval-dev     # System A eval on validation split → eval/reports/dev/
+make eval-dev-b   # System B eval on validation split → eval/reports/dev/
+make eval-dev-c   # System C eval on validation split → eval/reports/dev/
+make eval-dev-all # A + B + C on validation split → eval/reports/dev/
+make eval         # eval on test split, appends to eval/reports/test/eval_ledger.jsonl
 make eval-smoke   # quick sanity check (5 samples)
+make llm-doctor   # probe all configured LLM profiles (latency, finish_reason, tokens)
 make audit-verify # recompute hash chain, fail on tampering
 make demo         # bring up demo mode (PAYGUARD_DEMO=1)
 make chaos        # toggle gateway failure injection
@@ -54,10 +58,22 @@ make clean        # remove build artifacts
 
 ## Evaluation rules
 
-- `make eval-dev` → validation split only. Safe to run anytime.
-- `make eval` → test split. Appends to ledger. Run sparingly; never cherry-pick runs.
+- `make eval-dev*` → validation split only. Safe to run anytime. Reports: `eval/reports/dev/`.
+- `make eval` → test split. Appends to `eval/reports/test/eval_ledger.jsonl`. Run sparingly.
+- README / Evaluation page renders only `eval/reports/test/` (frozen test split) reports.
+- Never tune prompts or thresholds on val. Tune only on train.
 - Never skip, xfail, or delete a test to go green.
 - Never lower a threshold to improve a number without an ADR + ledger entry.
+- Risk scorer: heuristic-v1 until ≥ 150 labeled train findings. State this in every report.
+
+## LLM provider hierarchy
+
+1. Analyzer: Gemini direct (PAYGUARD_LLM_*) — 8 rpm free tier
+2. Generator: Groq direct (PAYGUARD_GEN_* / GROQ_API_KEY) — 25 rpm free tier
+3. Fallback: OpenRouter (PAYGUARD_FALLBACK_*) — last-resort only, 50 RPD, max_retries=1
+   Do NOT use OpenRouter for dataset generation runs.
+   
+Dataset LLM cache: `dataset/llm_cache/` (committed) enables demo-replay without live key.
 
 ## Secrets
 

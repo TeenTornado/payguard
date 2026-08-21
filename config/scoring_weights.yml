@@ -1,0 +1,38 @@
+# PayGuard risk scoring weights — heuristic v1
+#
+# Used when fewer than 150 labeled findings exist in train (calibration threshold).
+# Each weight multiplies a binary or continuous feature in [0, 1].
+# Final score = clamp(sum(w_i * f_i), 0, 1).
+#
+# These weights encode domain knowledge, not statistical fit:
+#   - Static hits are high-precision, so they add large weight.
+#   - LLM hits are noisier, so they add smaller weight.
+#   - Agreement between static + LLM is a strong signal — extra bonus.
+#   - Evidence lines (LLM citing specific line numbers) slightly boost LLM signal.
+#
+# Do NOT tune these weights on the val or test splits.
+# Tune only on train, and only after collecting ≥ 150 labeled findings.
+
+calibration_threshold: 150  # minimum train-split labeled findings before ML replaces this
+
+weights:
+  # Static signals
+  static_hit: 0.55              # strongest single signal — static is deterministic
+  static_max_confidence: 0.20   # scaled by the rule's confidence score
+  static_n_rules_bonus: 0.05    # per additional distinct rule beyond the first (capped at 2)
+
+  # LLM signals
+  llm_hit: 0.25                 # LLM firing on its own
+  llm_max_confidence: 0.15      # scaled by LLM's confidence score
+  llm_n_findings_bonus: 0.03    # per additional finding beyond the first (capped at 3)
+  llm_evidence_lines_bonus: 0.05 # LLM cited specific line numbers → more credible
+
+  # Agreement bonus
+  both_agree_bonus: 0.15        # static and LLM both fire → strong ensemble signal
+
+# Score thresholds for binary decision (system C at tau)
+# The eval harness uses --tau directly; these are for the scoring API output label.
+decision_thresholds:
+  DUPLICATE_PAYMENT: 0.45
+  WEBHOOK_INTEGRITY: 0.45
+  AMOUNT_CURRENCY:   0.45

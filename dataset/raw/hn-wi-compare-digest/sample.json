@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-wi-compare-digest",
+  "repo_id": "hn-wi-compare-digest",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 2,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Gold-standard safe template: HMAC SHA256 on raw bytes with hmac.compare_digest, plus event_id dedup via _processed_events dict. Both WI mitigations are present and correct. LLM should confirm safe.",
+  "license": "MIT",
+  "file": "app.py"
+}

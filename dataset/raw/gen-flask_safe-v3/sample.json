@@ -1,0 +1,16 @@
+{
+  "sample_id": "gen-flask_safe-v3",
+  "repo_id": "repo-flask_safe-v3",
+  "language": "python",
+  "framework": "flask",
+  "source": "SEEDED_VARIANT",
+  "labels": [],
+  "hard_negative": false,
+  "difficulty": 1,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Generated from template flask_safe, variant 3",
+  "license": "MIT",
+  "seed": "flask_safe-v3",
+  "file": "app.py"
+}

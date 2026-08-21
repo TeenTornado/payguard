@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-wi-helper-sig",
+  "repo_id": "sb-wi-helper-sig",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "WEBHOOK_INTEGRITY",
+      "lines": [[19, 25]],
+      "scenario_ids": ["WI-1"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 4,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: HMAC verification exists and uses hmac.compare_digest, so static rules pass. Bug: _verify_signature re-serializes the body via json.dumps(json.loads(raw_body)) before computing HMAC. This changes key order and whitespace, so the HMAC is computed over different bytes than what Razorpay signed. An attacker who can predict json.dumps output can bypass the check.",
+  "license": "MIT",
+  "file": "app.py"
+}

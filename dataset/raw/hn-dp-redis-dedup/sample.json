@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-dp-redis-dedup",
+  "repo_id": "hn-dp-redis-dedup",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 4,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: Redis atomic SET NX (set-if-not-exists) is used as the idempotency mechanism. LLM may not recognize redis_client.set(..., nx=True) as a dedup pattern, or may mistake it for simple caching. The get() before order creation is the dedup check.",
+  "license": "MIT",
+  "file": "app.py"
+}

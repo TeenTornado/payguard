@@ -1,0 +1,16 @@
+{
+  "sample_id": "gen-flask_hn_decimal-v3",
+  "repo_id": "repo-flask_hn_decimal-v3",
+  "language": "python",
+  "framework": "flask",
+  "source": "SEEDED_VARIANT",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 4,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Generated from template flask_hn_decimal, variant 3",
+  "license": "MIT",
+  "seed": "flask_hn_decimal-v3",
+  "file": "app.py"
+}

@@ -1,0 +1,47 @@
+profiles:
+  # Primary analyzer — Gemini direct (AIza... key, 8 rpm free tier)
+  # Model: gemini-3.6-flash works with the Google OpenAI-compat endpoint.
+  # gemini-2.5-flash returns 404 for new API keys.
+  gemini:
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    model: "gemini-3.6-flash"
+    rpm: 8
+    tpm: 200000
+    max_tokens: 8192
+
+  # Primary generator — Groq direct (GROQ_API_KEY)
+  groq:
+    base_url: "https://api.groq.com/openai/v1"
+    model: "llama-3.3-70b-versatile"
+    rpm: 25
+    tpm: 10000
+
+  # Local fallback for offline development
+  ollama:
+    base_url: "http://localhost:11434/v1"
+    api_key: "ollama"
+    model: "qwen2.5-coder:7b"
+    rpm: 999
+    tpm: 999999
+
+  # LAST-RESORT ONLY — OpenRouter (50 RPD unfunded; :free models get delisted)
+  # Never use as primary for dataset runs. max_retries=1 to not burn RPD quota.
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    model: "google/gemini-2.5-flash"
+    rpm: 20
+    tpm: 20000
+    max_retries: 1
+
+  # OpenRouter variant for generation (kept for reference; prefer groq direct)
+  openrouter_groq:
+    base_url: "https://openrouter.ai/api/v1"
+    model: "meta-llama/llama-3.3-70b-instruct"
+    rpm: 20
+    tpm: 20000
+    max_retries: 1
+
+defaults:
+  analyzer: gemini
+  generator: groq
+  fallback: openrouter

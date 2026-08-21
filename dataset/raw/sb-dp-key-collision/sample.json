@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-dp-key-collision",
+  "repo_id": "sb-dp-key-collision",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "DUPLICATE_PAYMENT",
+      "lines": [[24, 26]],
+      "scenario_ids": ["DP-1"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 4,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: cache lookup 'if cache_key in _order_cache' exists, so static DP-R1 rules pass. Bug: cache_key = str(amount_paise) — two different carts purchasing the same-priced item collide on this key and the second cart receives the first cart's order_id. Static rules see the dict lookup pattern and cannot evaluate whether the key correctly identifies a unique order.",
+  "license": "MIT",
+  "file": "app.py"
+}

@@ -1,0 +1,22 @@
+{
+  "sample_id": "sb-wi-wrong-body",
+  "repo_id": "sb-wi-wrong-body",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [
+    {
+      "defect_class": "WEBHOOK_INTEGRITY",
+      "lines": [[37, 43]],
+      "scenario_ids": ["WI-1"]
+    }
+  ],
+  "hard_negative": false,
+  "difficulty": 4,
+  "static_detectable": false,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Static-blind: HMAC verification is present and uses hmac.compare_digest, so static WI rules pass. Bug: request.get_data(as_text=True) decodes raw bytes to a Python str using the WSGI-detected encoding, then re-encodes with .encode() before hashing. If the raw body contains non-ASCII bytes or the encoding differs from UTF-8, the bytes fed to HMAC differ from what Razorpay signed. Static rules cannot distinguish get_data() from get_data(as_text=True).",
+  "license": "MIT",
+  "file": "app.py"
+}

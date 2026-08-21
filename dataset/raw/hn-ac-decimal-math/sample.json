@@ -1,0 +1,16 @@
+{
+  "sample_id": "hn-ac-decimal-math",
+  "repo_id": "hn-ac-decimal-math",
+  "language": "python",
+  "framework": "flask",
+  "source": "MANUAL",
+  "labels": [],
+  "hard_negative": true,
+  "difficulty": 3,
+  "static_detectable": true,
+  "runnable": false,
+  "manifest_path": null,
+  "notes": "Hard negative: uses Decimal arithmetic with ROUND_HALF_UP quantization to convert INR to paise. The *100 multiplication is present but uses Decimal not float, avoiding precision loss. LLM might flag the *100 as potential AC without checking the Decimal type.",
+  "license": "MIT",
+  "file": "app.py"
+}

@@ -17,6 +17,18 @@ def main() -> None:
     """PayGuard — payment integration defect detector."""
 
 
+@main.group()
+def llm() -> None:
+    """LLM provider management commands."""
+
+
+@llm.command("doctor")
+def llm_doctor() -> None:
+    """Probe all configured LLM profiles and report connectivity, latency, tokens."""
+    from payguard.llm.doctor import run_doctor
+    run_doctor()
+
+
 @main.command()
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")

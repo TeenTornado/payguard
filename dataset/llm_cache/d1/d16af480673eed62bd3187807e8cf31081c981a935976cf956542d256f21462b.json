@@ -1,0 +1,1 @@
+{"analysis": {"findings": [], "analysis_notes": "No defects found in the provided `create_order` function. The amount is hardcoded and in paise, and order creation itself doesn't introduce the analyzed defect classes."}}

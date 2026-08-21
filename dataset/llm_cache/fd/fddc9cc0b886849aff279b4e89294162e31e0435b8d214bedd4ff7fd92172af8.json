@@ -1,0 +1,1 @@
+{"analysis": {"findings": [], "analysis_notes": "The webhook handler correctly verifies the signature over the raw body and implements event-id deduplication, mitigating common duplicate payment and webhook integrity issues."}}
