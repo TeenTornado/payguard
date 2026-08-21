@@ -1,0 +1,25 @@
+# Exposure estimation parameters
+# All ESTIMATED figures are labeled as such in the UI. Every assumption is shown.
+# Edit these to reflect the merchant's actual traffic.
+
+defaults:
+  p_incident_given_finding: 0.15       # P(defect triggers loss | finding confirmed)
+  expected_monthly_transactions: 1000  # merchant transactions per month
+  horizon_months: 3                    # evaluation horizon
+  loss_fraction: 1.0                   # fraction of transaction amount lost
+
+# Per-class defaults
+DUPLICATE_PAYMENT:
+  p_incident_given_finding: 0.20
+  # estimated fraction of transactions that would trigger the duplicate path
+  trigger_fraction: 0.05
+
+WEBHOOK_INTEGRITY:
+  p_incident_given_finding: 0.10
+  # estimated fraction of webhooks replayed / forged
+  trigger_fraction: 0.02
+
+AMOUNT_CURRENCY:
+  p_incident_given_finding: 0.30
+  # almost every transaction would be affected
+  trigger_fraction: 1.0

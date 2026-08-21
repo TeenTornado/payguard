@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payguard
+      POSTGRES_USER: payguard
+      POSTGRES_PASSWORD: payguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build:
+      context: .
+      dockerfile: payguard/gateway/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - GATEWAY_MODE=${GATEWAY_MODE:-EMULATE}
+      - RAZORPAY_TEST_KEY_ID=${RAZORPAY_TEST_KEY_ID:-}
+      - RAZORPAY_TEST_KEY_SECRET=${RAZORPAY_TEST_KEY_SECRET:-}
+      - RAZORPAY_TEST_WEBHOOK_SECRET=${RAZORPAY_TEST_WEBHOOK_SECRET:-}
+      - DATABASE_URL=postgresql+asyncpg://payguard:payguard@postgres:5432/payguard
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: payguard/api/Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - PAYGUARD_ENV=TEST
+      - DATABASE_URL=postgresql+asyncpg://payguard:payguard@postgres:5432/payguard
+      - GATEWAY_URL=http://gateway:8001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PAYGUARD_LLM_PROVIDER=${PAYGUARD_LLM_PROVIDER:-anthropic}
+      - PAYGUARD_LLM_MODEL=${PAYGUARD_LLM_MODEL:-claude-haiku-4-5-20251001}
+      - PAYGUARD_LLM_CACHE_DIR=/app/dataset/llm_cache
+      - PAYGUARD_DEMO=${PAYGUARD_DEMO:-0}
+      - SANDBOX_RUNTIME=${SANDBOX_RUNTIME:-docker}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    volumes:
+      - ./dataset/llm_cache:/app/dataset/llm_cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: payguard/api/Dockerfile
+    command: python -m payguard.worker
+    environment:
+      - PAYGUARD_ENV=TEST
+      - DATABASE_URL=postgresql+asyncpg://payguard:payguard@postgres:5432/payguard
+      - GATEWAY_URL=http://gateway:8001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PAYGUARD_LLM_PROVIDER=${PAYGUARD_LLM_PROVIDER:-anthropic}
+      - PAYGUARD_LLM_MODEL=${PAYGUARD_LLM_MODEL:-claude-haiku-4-5-20251001}
+      - PAYGUARD_LLM_CACHE_DIR=/app/dataset/llm_cache
+      - PAYGUARD_DEMO=${PAYGUARD_DEMO:-0}
+      - SANDBOX_RUNTIME=${SANDBOX_RUNTIME:-docker}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    volumes:
+      - ./dataset/llm_cache:/app/dataset/llm_cache
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-8000}
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

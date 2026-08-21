@@ -1,0 +1,11 @@
+# Detection and verification thresholds
+# These are developed against train/val only. Never tune against the test split.
+
+advisory_threshold: 0.30   # below this → ADVISORY (Exception Queue)
+verify_threshold: 0.60     # above this → QUEUED_FOR_VERIFICATION (EMULATED auto-runs)
+
+# Per-class overrides (optional; inherits global if not set)
+# DUPLICATE_PAYMENT:
+#   verify_threshold: 0.55
+# WEBHOOK_INTEGRITY:
+#   verify_threshold: 0.65

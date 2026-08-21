@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+env:
+  PAYGUARD_ENV: TEST
+  DATABASE_URL: postgresql+asyncpg://payguard:payguard@localhost:5432/payguard
+
+jobs:
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
+      - run: uv pip install -e ".[dev]"
+      - name: ruff
+        run: .venv/bin/python -m ruff check payguard/ tests/
+      - name: mypy (shared + verifier)
+        run: .venv/bin/python -m mypy payguard/shared/ payguard/verifier/ --strict
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: payguard
+          POSTGRES_USER: payguard
+          POSTGRES_PASSWORD: payguard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
+      - run: uv pip install -e ".[dev]"
+      - name: run migrations
+        run: .venv/bin/python -m alembic upgrade head
+      - name: pytest
+        run: .venv/bin/python -m pytest tests/ -v --cov=payguard --cov-report=term-missing
+      - name: audit chain verify
+        run: .venv/bin/python -m payguard.shared.audit_verify
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+            | tar xz -C /usr/local/bin gitleaks
+      - name: gitleaks scan
+        run: gitleaks detect --source . --no-git

@@ -1,0 +1,22 @@
+# Cost model for FP/FN evaluation reporting
+# ESTIMATED — labeled as such in the eval report. Edit to reflect actual costs.
+
+# FP cost: engineering time to investigate a false positive finding
+review_minutes_per_fp: 20      # minutes per false positive
+hourly_cost_usd: 50            # loaded hourly cost for review (USD)
+
+# FN cost: expected loss from a missed defect, by class
+# These are rough estimates; the eval report shows them as ESTIMATED.
+fn_cost_per_miss:
+  DUPLICATE_PAYMENT:
+    expected_loss_inr: 1500    # typical order value (INR)
+    notes: "Assumes 1 duplicate fulfillment per missed finding"
+  WEBHOOK_INTEGRITY:
+    expected_loss_inr: 1500
+    notes: "Assumes forged webhook triggers one fulfillment"
+  AMOUNT_CURRENCY:
+    expected_loss_inr: 75000   # higher: affects all transactions at scale
+    notes: "Assumes rupee/paise confusion on 50 transactions before caught"
+  SUSPICIOUS_CONTENT:
+    expected_loss_inr: 0       # advisory only
+    notes: "Advisory class; no direct financial loss estimated"
