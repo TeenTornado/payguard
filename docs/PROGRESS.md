@@ -4,24 +4,13 @@ Last updated: 2026-08-21
 
 ## Phase checklist
 
-- [ ] **Phase 1** — Skeleton, schemas, audit chain, CI (target: Aug 22)
-  - [x] VibeCheck assessed (`docs/reference/vibecheck-assessment.md`)
-  - [x] Repo initialized (`git init ~/payguard`)
-  - [x] CLAUDE.md, .gitignore, .env.example
-  - [x] pyproject.toml (uv, pinned deps)
-  - [x] docker-compose.yml (postgres, api stub, gateway stub, worker stub, web stub)
-  - [x] FAILURES.md (template)
-  - [ ] payguard/shared/ — enums, models, config, audit chain
-  - [ ] Alembic migrations (all tables, audit role)
-  - [ ] `make audit-verify` passes (unit test: tamper a row → fails)
-  - [ ] ADR-001..005 drafts
-  - [ ] CI workflow (ruff, mypy, pytest, gitleaks)
-  - [ ] `make up` healthy
-  - [ ] `make test` green
-  - [ ] First commits done
-
-- [ ] **Phase 2** — DUPLICATE_PAYMENT static rules + examples (target: Aug 23)
-- [ ] **Phase 3** — Gateway EMULATE + sandbox + DP-2 end-to-end (target: Aug 24)
+- [x] **Phase 1** — Skeleton, schemas, audit chain, CI (Aug 21) ✓
+- [x] **Phase 2** — DUPLICATE_PAYMENT static rules + examples (Aug 21) ✓
+- [x] **Phase 3** — Gateway EMULATE + DP-2 end-to-end (Aug 21) ✓
+  - Gateway emulator: orders, payments, capture, refund, checkout simulator, webhooks, chaos
+  - Scenarios: DP-2 (VERIFIED on vulnerable, NOT_REPRODUCED on safe, idempotent)
+  - 48/48 tests green
+- [ ] **Phase 4** — Eval harness v0, System A (target: Aug 25)
 - [ ] **Phase 4** — Eval harness v0, System A (target: Aug 25)
 - [ ] **Phase 5** — LLM adapter, Systems B+C (target: Aug 26)
 - [ ] **Phase 6** — Risk scoring + calibration + exposure (target: Aug 27)

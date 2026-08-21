@@ -1,0 +1,20 @@
+# PayGuard manifest for the demo merchant
+runtime: python
+install: pip install flask razorpay
+start: python app.py
+port: 5050
+health: /health
+charge_endpoint:
+  path: /create-order
+  method: POST
+  request_template:
+    intended_amount_inr: 1500
+webhook_endpoint: /webhook/razorpay
+state_probe:
+  type: http
+  path: /probe/fulfillment-count
+env_map:
+  key_id: RAZORPAY_KEY_ID
+  key_secret: RAZORPAY_KEY_SECRET
+  webhook_secret: RAZORPAY_WEBHOOK_SECRET
+  base_url: RAZORPAY_BASE_URL
