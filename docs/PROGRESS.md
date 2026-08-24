@@ -1,6 +1,31 @@
 # PROGRESS.md
 
-Last updated: 2026-08-24
+Last updated: 2026-08-24 (session 2)
+
+## Sandbox verification + demo polish (Aug 24, session 2)
+
+- [x] **P0 — sandbox → VERIFIED with MEASURED.** Runnable Express targets under
+      `examples/targets/` (+ safe control); `payguard/sandbox/` runner (docker/subprocess);
+      DP-2 executor boots the target, delivers a signed webhook twice, probes 0→2 →
+      **VERIFIED, MEASURED ₹1,500**, tier EMULATED. Streams every step to the Verification tab.
+      Gateway chaos → ERROR, no MEASURED. `tests/integration/test_dp2_sandbox.py` proves all three.
+- [x] **P1 — empty-field bugs.** Rule→title templates; File/lines + Exposure columns fixed
+      (web field mapping); audit `ts` rendered; SCAN_STARTED emitted once; `HUMAN:<name>` actor;
+      Findings page defaults to the most recent scan with a scan filter.
+- [x] **P2 — LLM never "unavailable".** Always-on Ollama fallback (`qwen2.5:7b`); a scan now
+      yields a `source=BOTH` finding (conf 0.95). `make llm-doctor` probes each profile.
+- [x] **P3 — exposure visible.** MEASURED (solid, tier) vs ESTIMATED (dashed, assumptions),
+      never labelled "saved".
+- [x] **P4 — clean demo entry.** `make demo` (Docker-free) starts services + seeds ONE clean
+      VERIFIED scan; `docs/demo-script.md` records the 5-min click path.
+- 104/104 tests green.
+
+## Known limitations (see docs/failure-modes.md)
+
+- Docker daemon down here → sandbox runs as **subprocess (no isolation, dev-only)**.
+- Code-viewer highlight spans the whole flagged unit (JS units are file-scoped).
+- One "AI-only unverified" finding is not guaranteed (depends on the local model); the
+  `source=BOTH` agreement finding is the reliable AI beat.
 
 ## Phase checklist
 

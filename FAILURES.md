@@ -170,3 +170,81 @@ on a non-VERIFIED outcome is scrubbed).
 not it. The sentinel is a single global switch for the host (no per-user/tenant scope); that
 limitation is documented in `docs/failure-modes.md` so it isn't mistaken for production-grade
 config.
+
+---
+
+## 2026-08-24 — verifier shipped BLOCKED (targets were static code, not runnable apps)
+
+**Symptom:** Clicking Verify on any finding ended `BLOCKED / TARGET_UNAVAILABLE`. The
+verifier had a sandbox code path but nothing ever reached VERIFIED — no finding ever got a
+MEASURED amount in the browser.
+
+**Root cause:** `examples/vulnerable/` (and the rest of `examples/`) are **static code the
+detector reads** — `.py`/`.js` snippets, not booting services. The verifier needs a **running
+app** to drive: create an order, deliver a webhook, probe the side-effect count. There was no
+runnable target, so DP-2 had nothing to hit and correctly fell through to BLOCKED. The two
+concepts had been conflated: "code we analyze" ≠ "app we execute".
+
+**Fix:** Split them. Added `examples/targets/dup-fulfillment-node/` (a real Express app with a
+`payguard.yml` manifest: runtime, start, health, webhook + state-probe endpoints, env_map) and
+a `-safe` control. Built `payguard/sandbox/` to boot a target (docker when the daemon is up,
+subprocess otherwise) and route its Razorpay calls to the EMULATE gateway. The verifier now
+boots the target, delivers the same signed event twice, and measures fulfilled_count 0→2 →
+VERIFIED with MEASURED ₹1,500.
+
+**Test added:** `tests/integration/test_dp2_sandbox.py` — VERIFIED+measured on the vulnerable
+target, NOT_REPRODUCED on the safe control, ERROR (no MEASURED) under gateway chaos.
+
+**Lesson:** A verifier's inputs are *runnable artifacts*, not source. If the demo corpus is
+static snippets, the verifier can only ever be BLOCKED — ship at least one bootable target per
+scenario, declared by a manifest, from day one.
+
+---
+
+## 2026-08-24 — audit ts + finding file/lines rendered "—" (stale field names in the web layer)
+
+**Symptom:** The Audit log's timestamp column and the Findings table's File and Exposure
+columns all showed "—", even though the data was in the DB and in the API JSON.
+
+**Root cause:** The web layer read field names the API doesn't emit. AuditLogTable read
+`ev.timestamp` (API sends `ts`); FindingsTable read `file_path` / `line_number` /
+`exposure_kind` / `exposure_paise` (API sends `file` / `start_line` / `exposure_measured_paise`
+/ `exposure_estimated_paise`). The values were never dropped server-side — the mismatch was at
+the JSON→UI mapping boundary, and TypeScript didn't catch it because the response was read as
+loosely-typed data.
+
+**Fix:** Render `ev.ts`; map API finding fields to the UI shape inside `listFindings` (one
+place); add finding `title` via `title_for()`; correct the `AuditEvent`/`VerificationResult`
+TS types so future drift is a compile error.
+
+**Test added:** None (pure serialization/mapping). Guarded going forward by the corrected TS
+types + `tsc --noEmit` in the web build.
+
+**Lesson:** When the API and UI are separate codebases, field-name drift renders as blank cells,
+not errors. Keep one mapping function per resource and type the raw response so `tsc` catches the
+next rename.
+
+---
+
+## 2026-08-24 — Gemini free-tier flakiness → made Ollama the always-on analyzer fallback
+
+**Symptom (carried from 2026-08-21):** the Gemini OpenAI-compat profile returns empty content
+under load (thinking-token exhaustion at low `max_tokens`), and the `AQ.Ab8…` token only
+exposes `gemini-3.6-flash`. Net effect this session: with no hosted key in the process env,
+`build_analyzer_provider()` returned None and the console showed **llm: unavailable**, so every
+finding was static-only — the AI-judgment and "AI finding — unverified" beats were invisible.
+
+**Root cause:** the analyzer hierarchy ended at OpenRouter → None. There was no offline,
+keyless fallback, so a missing/flaky hosted key degraded straight to "unavailable".
+
+**Fix:** Added a local **Ollama** fallback (`qwen2.5:7b`, no key) as the last tier of
+`build_analyzer_provider()`. `llm doctor` confirms it responds with valid JSON (~7s/call). A
+scan of the target now runs static+LLM and yields a **source=BOTH** finding (conf 0.95). If
+Ollama isn't running the scan degrades to static-only — never a silent gap. Gemini is left as an
+optional hosted primary (`max_tokens=8192`; `gemini-2.5-flash-lite` documented as the
+thinking-free option) but is no longer required for the demo.
+
+**Test added:** None (runtime provider wiring). `make llm-doctor` surfaces per-profile health.
+
+**Lesson:** An "AI" product must never show "unavailable" just because a hosted free-tier key is
+absent or throttled. Keep a keyless local model as the floor of the provider hierarchy.
