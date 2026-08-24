@@ -248,3 +248,47 @@ thinking-free option) but is no longer required for the demo.
 
 **Lesson:** An "AI" product must never show "unavailable" just because a hosted free-tier key is
 absent or throttled. Keep a keyless local model as the floor of the provider hierarchy.
+
+---
+
+## 2026-08-24 — Docker sandbox wouldn't boot (`--tmpfs /app/.cache` vs read-only `/app`)
+
+**Symptom:** Making Docker the default sandbox runtime, every target returned
+`BLOCKED / TARGET_BOOT_FAILED`. Running the container by hand:
+`error mounting "tmpfs" to rootfs at "/app/.cache": … read-only file system`.
+
+**Root cause:** the target is mounted read-only at `/app` (`-v <target>:/app:ro`), and the
+runner also asked for `--tmpfs /app/.cache`. Docker can't create the `.cache` mountpoint
+*inside* a read-only bind mount, so container init aborted before node ever started. A
+second bug: the target bound `127.0.0.1` inside the container, so the published port never
+routed even once the tmpfs issue was fixed.
+
+**Fix:** dropped the `/app/.cache` tmpfs (node needs no writable cache; `--tmpfs /tmp` is
+separate and fine); bound the targets to `0.0.0.0` (still reachable as 127.0.0.1 on the
+host, and now routable via the published port in the container).
+
+**Test added:** `test_dp2_verified_in_docker_runtime` (skips if the daemon is down) —
+VERIFIED+MEASURED through the real Docker runtime.
+
+**Lesson:** tmpfs mountpoints must live *outside* a read-only bind, and a containerized
+server must bind `0.0.0.0`, not loopback, for `-p` publishing to work. Test the container
+by hand (`docker run … node app.js`) before wiring it into the runner.
+
+---
+
+## 2026-08-24 — AC-R1 missed JS charge handlers (`\b/v1/orders\b` never matches a URL)
+
+**Symptom:** The AC-1 target (rupees-as-paise) produced no static finding, so "scan → AC
+finding → verify" had nothing to click.
+
+**Root cause:** `_AC_R1_CREATE = \b(orders?\.create|/v1/orders)\b`. In a URL literal
+(`fetch("…/v1/orders")`) the `/` is preceded by a quote or `}` — both non-word — so the
+leading `\b` never matched. The rule had only ever been exercised on the Python
+`order.create` form.
+
+**Fix:** drop the leading boundary for the URL alternative (`\borders?\.create\b|/v1/orders\b`).
+16 static rule tests still green; AC-1 targets now flagged, safe control still clean.
+
+**Lesson:** `\b` around a token that starts with punctuation (`/v1/…`) is a no-op or worse.
+Test detection rules against every language/idiom the corpus contains, not just the one they
+were written for.
