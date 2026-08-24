@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from payguard.detector.titles import title_for
 from payguard.shared.audit import append_audit_event, verify_audit_chain
 from payguard.shared.chaos import read_chaos, set_chaos
 from payguard.shared.config import get_settings
@@ -179,6 +180,15 @@ _SCAN_STATE_MESSAGES: dict[str, str] = {
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _human_actor(name: str) -> str:
+    """Format a human actor as HUMAN:<name> per the audit convention."""
+    if not name or name == AuditActor.HUMAN.value:
+        return AuditActor.HUMAN.value
+    if ":" in name:
+        return name
+    return f"{AuditActor.HUMAN.value}:{name}"
 
 
 def _sse_line(payload: dict) -> str:
@@ -461,6 +471,7 @@ async def list_findings(
             {
                 "id": f.id,
                 "scan_id": f.scan_id,
+                "title": title_for(f.rule_ids, f.defect_class),
                 "defect_class": f.defect_class,
                 "severity": f.severity,
                 "confidence": f.confidence,
@@ -558,6 +569,7 @@ async def get_finding(finding_id: str, db: AsyncSession = Depends(get_db)) -> di
         "id": finding.id,
         "scan_id": finding.scan_id,
         "repository_id": finding.repository_id,
+        "title": title_for(finding.rule_ids, finding.defect_class),
         "defect_class": finding.defect_class,
         "scenario_ids": finding.scenario_ids,
         "severity": finding.severity,
@@ -634,7 +646,7 @@ async def verify_finding(
 
     await append_audit_event(
         db,
-        actor=body.actor,
+        actor=_human_actor(body.actor),
         event=AuditEventKind.VERIFICATION_REQUESTED,
         object_type="Finding",
         object_id=finding_id,
@@ -737,7 +749,7 @@ async def dismiss_finding(
     finding.state = FindingState.DISMISSED
     await append_audit_event(
         db,
-        actor=body.actor,
+        actor=_human_actor(body.actor),
         event=AuditEventKind.FINDING_STATE_CHANGED,
         object_type="Finding",
         object_id=finding_id,
@@ -761,7 +773,7 @@ async def escalate_finding(
     finding.state = FindingState.EXCEPTION
     await append_audit_event(
         db,
-        actor=body.actor,
+        actor=_human_actor(body.actor),
         event=AuditEventKind.FINDING_STATE_CHANGED,
         object_type="Finding",
         object_id=finding_id,
@@ -808,7 +820,7 @@ async def propose_remediation(
 
     await append_audit_event(
         db,
-        actor=body.actor,
+        actor=_human_actor(body.actor),
         event=AuditEventKind.REMEDIATION_PROPOSED,
         object_type="Remediation",
         object_id=remediation_id,
@@ -841,7 +853,7 @@ async def approve_remediation(
     rem.decided_at = _now()
     await append_audit_event(
         db,
-        actor=body.actor,
+        actor=_human_actor(body.actor),
         event=AuditEventKind.REMEDIATION_APPROVED,
         object_type="Remediation",
         object_id=remediation_id,
@@ -869,7 +881,7 @@ async def reject_remediation(
     rem.decided_at = _now()
     await append_audit_event(
         db,
-        actor=body.actor,
+        actor=_human_actor(body.actor),
         event=AuditEventKind.REMEDIATION_REJECTED,
         object_type="Remediation",
         object_id=remediation_id,
