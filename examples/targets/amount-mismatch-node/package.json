@@ -1,0 +1,9 @@
+{
+  "name": "amount-mismatch-node",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vulnerable target: rupees sent as paise on /charge (AC-1).",
+  "main": "app.js",
+  "scripts": { "start": "node app.js" },
+  "dependencies": { "express": "^4.21.0" }
+}

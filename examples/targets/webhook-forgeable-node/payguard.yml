@@ -1,0 +1,25 @@
+name: webhook-forgeable-node
+defect_class: WEBHOOK_INTEGRITY
+scenario: WI-1
+
+runtime: node20
+install: npm install --no-audit --no-fund
+start: node app.js
+port_env: PORT
+health: GET /health
+
+webhook_endpoint:
+  method: POST
+  path: /webhook
+
+state_probe:
+  method: GET
+  path: /state
+  query: order_id
+  json_path: fulfilled_count
+
+env_map:
+  key_id: RAZORPAY_KEY_ID
+  key_secret: RAZORPAY_KEY_SECRET
+  webhook_secret: RAZORPAY_WEBHOOK_SECRET
+  base_url: RAZORPAY_BASE_URL

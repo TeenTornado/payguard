@@ -1,0 +1,9 @@
+{
+  "name": "amount-mismatch-node-safe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Safe control: correct rupees→paise conversion (AC-1 NOT_REPRODUCED).",
+  "main": "app.js",
+  "scripts": { "start": "node app.js" },
+  "dependencies": { "express": "^4.21.0" }
+}
