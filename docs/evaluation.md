@@ -111,3 +111,43 @@ The next phase measures C vs C+RAG on this same frozen split.
 These numbers are a real baseline, not a leaderboard claim. The dataset scale-up (≥240 samples) needs a
 Groq generation key and remains separate. `qwen2.5:7b` is a weak analyzer; a stronger hosted model would
 likely move B/C, but the point of C+RAG is to improve *whatever* analyzer is in use.
+
+## C vs C+RAG (grounded analyzer) — 2026-08-24, frozen test split (n=11)
+
+Measured C (static ∪ LLM) against C+RAG (static ∪ **grounded** LLM) on the SAME frozen test
+split, same analyzer (Ollama `qwen2.5:7b`), only grounding differs. `make eval` runs both and
+`payguard.eval.compare` prints the delta.
+
+| System | macro P | macro R | macro F1 | total FP | FP-cost (w=1) |
+|--------|--------:|--------:|---------:|---------:|--------------:|
+| A (static)      | 0.889 | 1.000 | 0.941 | 1  | 1  |
+| B (LLM only)    | 0.485 | 0.778 | 0.597 | 17 | 17 |
+| C (static ∪ LLM)| 0.485 | 1.000 | 0.653 | 17 | 17 |
+| **C+RAG**       | 0.485 | 1.000 | 0.653 | 17 | 17 |
+
+### Verdict: grounding did NOT beat the baseline on this corpus — kept behind a flag
+
+C+RAG is **identical** to C: false positives 17 → 17, macro precision 0.485 → 0.485, F1 0.653 →
+0.653. Retrieval surfaced the right evidence (a citable rule + hard-negative SAFE_PATTERNs for
+each class — verifiable in the AI-reasoning tab), but the local **qwen2.5:7b** analyzer did not
+change a single verdict because of it: it kept over-flagging WEBHOOK_INTEGRITY (9 FP) and
+AMOUNT_CURRENCY (8 FP) exactly as before, even when a SAFE_PATTERN for that class was in front of
+it. A direct probe confirmed this — the grounded model still flagged the *safe* dedup target as
+DUPLICATE_PAYMENT at 0.9.
+
+**Decision (ADR-013):** the grounded analyzer stays **off by default**, behind
+`PAYGUARD_ANALYZER=grounded`. It is not made the default because it does not improve precision,
+recall, or FP-cost here.
+
+**Likely reason.** A 7B instruction model is too weak to down-weight its prior when a retrieved
+counter-example contradicts it; it treats the reference block as background, not as a decision
+input. Grounding's premise (cut FPs without losing recall) is sound, but it needs (a) a stronger
+analyzer that actually attends to references, and/or (b) a larger, harder corpus where the
+baseline LLM makes *retrievable* mistakes. Recall was already 1.0 at C, so there was no recall to
+lose — the only lever was precision, and the weak model wouldn't move.
+
+**What would change the verdict (not done here, honestly):** rerun C vs C+RAG with a stronger
+hosted analyzer (the harness already supports it — set the hosted key), and on the scaled dataset
+(≥240 samples, which needs a Groq generation key). n=11 is small; a single FP swings a per-class
+precision. This is a real baseline and a real negative result, not a tuned one — nothing was
+tuned on the test split.

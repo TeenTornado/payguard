@@ -1,6 +1,28 @@
 # PROGRESS.md
 
-Last updated: 2026-08-24 (session 3)
+Last updated: 2026-08-24 (session 4)
+
+## Grounded (retrieval-augmented) analyzer — measured (Aug 24, session 4)
+
+Preconditions first (hard gate): (a) DP-2/WI-1/AC-1 VERIFIED with MEASURED ✓; (b) `make eval`
+now produces real A/B/C on the frozen test split ✓ (extended it; B/C use the local Ollama
+analyzer). Baseline: **C macro P=0.485 with 17 LLM false positives** — the problem RAG targets.
+
+- [x] Retriever from scratch (`payguard/detector/retrieval/`): dense (chroma, ONNX all-MiniLM,
+      no torch) + lexical (BM25) fused by RRF, class-filtered, always cites a RULE. `make kb-index`.
+- [x] Two-tier KB: 11 curated Razorpay rules + 63 TRAIN-split examples (hard negatives weighted).
+      **Leakage guard test** (no val/test ids in the index) — CI-enforced. ADR-011/012/013.
+- [x] Grounded analyzer (`PAYGUARD_ANALYZER=grounded`, default off): `<<<REFERENCE>>>` block,
+      cites the violated rule, records retrieved chunks; System **C+RAG** in the eval; AI tab shows
+      the cited rule + examples; Evaluation page shows C vs C+RAG.
+- [x] **Measured C vs C+RAG on the frozen test split** — see docs/evaluation.md.
+- 116/116 tests green.
+
+### Verdict (real numbers): grounding did NOT beat baseline — kept behind the flag
+
+C+RAG ≡ C: FP 17→17, macro P 0.485→0.485, F1 0.653→0.653. The 7B analyzer ignored the SAFE_PATTERN
+references. Grounded stays OFF by default; documented honestly (likely needs a stronger analyzer
+and/or the scaled dataset — the latter still needs a Groq generation key). Not tuned on test.
 
 ## Docker sandbox + 3-class verification + AI-security (Aug 24, session 3)
 

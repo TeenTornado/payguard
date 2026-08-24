@@ -38,15 +38,21 @@ def _total_fp(report: dict) -> int:
     return sum(int(pc.get("fp", 0)) for pc in (report.get("per_class") or {}).values())
 
 
+def _prf(d: dict) -> dict:
+    # Reports store precision/recall/f1; expose them as p/r/f1 for the UI.
+    return {"p": d.get("precision"), "r": d.get("recall"), "f1": d.get("f1")}
+
+
 def summarize(report: dict) -> dict:
     pc = report.get("per_class") or {}
     return {
         "system": report.get("system"),
         "n_samples": report.get("n_samples"),
         "provider_model": report.get("provider_model"),
-        "macro": report.get("macro") or {},
+        "macro": _prf(report.get("macro") or {}),
         "total_fp": _total_fp(report),
-        "per_class": {c: {k: pc.get(c, {}).get(k) for k in ("tp", "fp", "fn", "p", "r", "f1")}
+        "per_class": {c: {"tp": pc.get(c, {}).get("tp"), "fp": pc.get(c, {}).get("fp"),
+                          "fn": pc.get(c, {}).get("fn"), **_prf(pc.get(c, {}))}
                       for c in EVAL_CLASSES},
     }
 

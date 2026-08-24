@@ -292,3 +292,48 @@ leading `\b` never matched. The rule had only ever been exercised on the Python
 **Lesson:** `\b` around a token that starts with punctuation (`/v1/…`) is a no-op or worse.
 Test detection rules against every language/idiom the corpus contains, not just the one they
 were written for.
+
+---
+
+## 2026-08-24 — grounded eval hung forever (no LLM HTTP timeout)
+
+**Symptom:** The first `--system C+RAG` run on the test split sat at 0% CPU for minutes with an
+empty output and zero cache writes — it never completed a single grounded call.
+
+**Root cause:** `OpenAICompatProvider` created the OpenAI client with no timeout. A grounded call
+to the local Ollama server stalled (large ~8.7 KB prompt on a 7B model under memory pressure), and
+with no client timeout the request blocked indefinitely; the eval process slept forever waiting on
+it.
+
+**Fix:** Bounded the client timeout (`PAYGUARD_LLM_TIMEOUT`, default 180s) so a stuck local model
+fails the call instead of hanging the eval/worker. Also shrank the grounded prompt (k=2 refs/class,
+shorter excerpts: 8.7 KB → 6 KB, 40s → 18s/call) so the run completes reliably.
+
+**Test added:** none (runtime/infra). The timeout is the guard; `make eval` now finishes.
+
+**Lesson:** Any blocking network call to a model — especially a local one that can wedge — needs a
+timeout. "It worked in a one-shot test" hides tail latency that a batch run exposes.
+
+---
+
+## 2026-08-24 — grounded analyzer did not beat baseline (measured, kept behind a flag)
+
+**Symptom:** Not a bug — a negative result, recorded per the rule that only an *unmeasured* outcome
+is unacceptable. On the frozen test split (n=11, Ollama qwen2.5:7b), C+RAG equalled C exactly:
+false positives 17 → 17, macro precision 0.485 → 0.485, F1 0.653 → 0.653.
+
+**Root cause:** The retriever surfaced the right evidence (a citable rule + hard-negative
+SAFE_PATTERNs per class — visible in the AI tab), but the 7B analyzer did not change a single
+verdict because of it; it kept over-flagging WI/AC even with a matching SAFE_PATTERN in front of it.
+A direct probe confirmed the grounded model still flagged the *safe* dedup target at 0.9.
+
+**Fix:** Kept the grounded analyzer OFF by default (`PAYGUARD_ANALYZER=grounded`, opt-in). Documented
+the delta and the likely reason (a weak local model won't down-weight its prior on a retrieved
+counter-example) in docs/evaluation.md.
+
+**Test added:** `tests/unit/test_kb_leakage.py` guards the corpus; the verdict is reproducible via
+`make eval` (A/B/C/C+RAG) + `payguard.eval.compare`.
+
+**Lesson:** Grounding is not free precision — it needs a model strong enough to attend to
+references, and a corpus where the baseline makes *retrievable* mistakes. Measure before making it
+the default; a sound premise can still lose on a given model/corpus.
