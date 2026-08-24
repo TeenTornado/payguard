@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC
 
 import httpx
 
@@ -239,7 +240,7 @@ async def persist_outcome(
     scenario returning a stray ``measured_impact_paise`` on a non-VERIFIED status — the
     amount is dropped unless the verdict is VERIFIED.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from payguard.shared.models import VerificationResult
 
@@ -270,7 +271,7 @@ async def persist_outcome(
     vr.measured_impact_paise = measured
     vr.attempts = outcome.attempts
     vr.error_code = outcome.error_code
-    vr.finished_at = datetime.now(timezone.utc)
+    vr.finished_at = datetime.now(UTC)
 
     # Money-safety: a MEASURED amount and the VERIFIED state are promoted together, and
     # only on a VERIFIED verdict. Everything else leaves exposure MEASURED-null.
@@ -293,7 +294,7 @@ async def execute_verification(session_factory, verification_id: str, finding_id
     (bounded retries), streams each step into the VerificationResult, and persists the
     verdict. VERIFIED promotes a MEASURED amount; ERROR/BLOCKED/INCONCLUSIVE never do.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from sqlalchemy import select
 
@@ -312,7 +313,7 @@ async def execute_verification(session_factory, verification_id: str, finding_id
                 log.error("Verification %s or finding %s missing", verification_id, finding_id)
                 return
             vr.status = VerificationStatus.RUNNING.value
-            vr.started_at = datetime.now(timezone.utc)
+            vr.started_at = datetime.now(UTC)
             vr.responses_json = []
             repo = await session.scalar(select(Repository).where(Repository.id == finding.repository_id))
             job = await session.scalar(

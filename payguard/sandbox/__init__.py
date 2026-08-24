@@ -17,6 +17,10 @@ real credentials never enter it.
 """
 from __future__ import annotations
 
+# This module's job is to spawn target processes with fixed dummy test creds. The
+# subprocess / partial-path / dummy-secret / poll-swallow / container-tmpfs lints below are
+# intentional.
+# ruff: noqa: S105, S108, S110, S603, S607, B904
 import asyncio
 import logging
 import os
@@ -183,7 +187,7 @@ async def _boot_subprocess(target_dir: Path, gateway_url: str, manifest: Manifes
         )
         try:
             await asyncio.wait_for(proc.communicate(), timeout=INSTALL_TIMEOUT_SECONDS)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             raise SandboxError("dependency install timed out")
         if proc.returncode != 0:

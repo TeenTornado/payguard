@@ -9,6 +9,8 @@ Requires the services to be up (see `make demo`).
 """
 from __future__ import annotations
 
+# Table names in DELETE come from a fixed local list, not user input.
+# ruff: noqa: S608
 import asyncio
 import os
 import time
@@ -95,7 +97,7 @@ def _seed() -> None:
         print(f"  ! verification ended {vr['status'] if vr else 'timeout'} "
               "(is the gateway up and SANDBOX_RUNTIME set?)")
 
-    print(f"\nDemo ready → open the console. Top finding is VERIFIED with a MEASURED amount.")
+    print("\nDemo ready → open the console. Top finding is VERIFIED with a MEASURED amount.")
 
 
 if __name__ == "__main__":
