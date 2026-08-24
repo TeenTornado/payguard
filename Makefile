@@ -76,7 +76,8 @@ demo:
 	@echo "Demo running. Visit http://localhost:3000"
 
 chaos:
-	$(PYTHON) -m payguard.gateway.chaos_toggle
+	@echo "Usage: make chaos ARGS='--llm on --gateway off'  |  make chaos ARGS='--off'"
+	$(PYTHON) -m payguard.shared.chaos $(ARGS)
 
 seed-examples:
 	$(PYTHON) -m payguard.dataset.seed_examples
