@@ -22,11 +22,17 @@ import pytest
 
 from payguard.shared.chaos import ChaosState, set_chaos, write_chaos
 from payguard.shared.enums import VerificationStatus
-from payguard.verifier.executor import drive_dp2_sandbox
+from payguard.verifier.executor import drive_dp2_sandbox, drive_sandbox_scenario
 
 ROOT = Path(__file__).resolve().parents[2]
-TARGET_VULN = str(ROOT / "examples" / "targets" / "dup-fulfillment-node")
-TARGET_SAFE = str(ROOT / "examples" / "targets" / "dup-fulfillment-node-safe")
+
+
+def _t(name: str) -> str:
+    return str(ROOT / "examples" / "targets" / name)
+
+
+TARGET_VULN = _t("dup-fulfillment-node")
+TARGET_SAFE = _t("dup-fulfillment-node-safe")
 
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 
@@ -115,6 +121,46 @@ def _docker_up() -> bool:
         return subprocess.run(["docker", "info"], capture_output=True, timeout=5).returncode == 0
     except Exception:
         return False
+
+
+# ─── WI-1 (forged webhook) and AC-1 (rupees-as-paise), subprocess runtime ─────
+
+
+@pytest.mark.asyncio
+async def test_wi1_verified_with_measured(gateway_url):
+    o = await drive_sandbox_scenario(gateway_url, _t("webhook-forgeable-node"), 150000)
+    assert o.status == VerificationStatus.VERIFIED.value, o.observed_behavior
+    assert o.measured_impact_paise == 150000  # order released for free
+
+
+@pytest.mark.asyncio
+async def test_wi1_not_reproduced_on_safe(gateway_url):
+    o = await drive_sandbox_scenario(gateway_url, _t("webhook-forgeable-node-safe"), 150000)
+    assert o.status == VerificationStatus.NOT_REPRODUCED.value, o.observed_behavior
+    assert o.measured_impact_paise is None
+
+
+@pytest.mark.asyncio
+async def test_ac1_verified_with_measured(gateway_url):
+    o = await drive_sandbox_scenario(gateway_url, _t("amount-mismatch-node"), 150000)
+    assert o.status == VerificationStatus.VERIFIED.value, o.observed_behavior
+    assert o.measured_impact_paise == 148500  # |150000 - 1500|
+
+
+@pytest.mark.asyncio
+async def test_ac1_not_reproduced_on_safe(gateway_url):
+    o = await drive_sandbox_scenario(gateway_url, _t("amount-mismatch-node-safe"), 150000)
+    assert o.status == VerificationStatus.NOT_REPRODUCED.value, o.observed_behavior
+    assert o.measured_impact_paise is None
+
+
+@pytest.mark.parametrize("target", ["webhook-forgeable-node", "amount-mismatch-node"])
+@pytest.mark.asyncio
+async def test_scenario_gateway_chaos_errors_without_measuring(gateway_url, target):
+    set_chaos(gateway=True)
+    o = await drive_sandbox_scenario(gateway_url, _t(target), 150000)
+    assert o.status == VerificationStatus.ERROR.value
+    assert o.measured_impact_paise is None
 
 
 @pytest.mark.skipif(not _docker_up(), reason="docker daemon not available")
