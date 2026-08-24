@@ -87,10 +87,13 @@ class OpenAICompatProvider:
         self.model = model
         self._max_tokens = max_tokens
         self._max_retries = max_retries
+        # Bounded timeout: a stuck local model (Ollama) must not hang the eval/worker forever.
+        timeout = float(os.environ.get("PAYGUARD_LLM_TIMEOUT", "180"))
         self._client = openai.OpenAI(
             base_url=base_url,
             api_key=api_key,
             max_retries=0,  # we handle retries ourselves
+            timeout=timeout,
         )
         self._rate_limiter: RateLimiter | NoopRateLimiter = (
             RateLimiter(rpm, tpm) if (rpm < 9999 or tpm < 9_999_999) else NoopRateLimiter()
