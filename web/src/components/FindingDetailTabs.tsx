@@ -139,20 +139,23 @@ function EvidenceTab({ finding }: { finding: Finding }) {
 // ---- AI Reasoning Tab ----
 
 function AIReasoningTab({ finding }: { finding: Finding }) {
+  const verified = finding.state === 'VERIFIED'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div
         style={{
           padding: '10px 14px',
-          background: '#FFFBEB',
-          border: '1px solid #FDE68A',
+          background: verified ? '#ECFDF3' : '#FFFBEB',
+          border: `1px solid ${verified ? '#A6F4C5' : '#FDE68A'}`,
           borderRadius: 6,
           fontSize: 12,
-          color: '#92400E',
+          color: verified ? '#067647' : '#92400E',
           fontWeight: 500,
         }}
       >
-        AI finding — unverified. Do not act on this alone.
+        {verified
+          ? 'The verifier confirmed this finding in the sandbox — the AI hypothesis was proven.'
+          : 'AI finding — unverified. The LLM proposes; the verifier decides. Do not act on this alone.'}
       </div>
 
       {finding.llm_reasoning ? (

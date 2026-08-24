@@ -156,6 +156,21 @@ export default function FindingDetailPage() {
               >
                 {finding.defect_class.replace(/_/g, ' ')}
               </span>
+              {finding.detector_source === 'LLM' && finding.state !== 'VERIFIED' && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: '#92400E',
+                    background: '#FFFBEB',
+                    border: '1px solid #FDE68A',
+                    borderRadius: 4,
+                    padding: '1px 6px',
+                    fontWeight: 600,
+                  }}
+                >
+                  AI finding — unverified
+                </span>
+              )}
             </div>
 
             {/* Title */}
