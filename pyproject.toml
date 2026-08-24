@@ -53,6 +53,13 @@ dev = [
     # gitleaks installed via brew/binary, not pip
 ]
 
+# Retrieval-augmented (grounded) analyzer. Optional: the base app never imports these; the
+# grounded path is opt-in (PAYGUARD_ANALYZER=grounded). `uv pip install -e ".[rag]"`.
+rag = [
+    "chromadb==1.5.9",
+    "rank_bm25==0.2.2",
+]
+
 [project.scripts]
 payguard = "payguard.cli:main"
 

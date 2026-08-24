@@ -70,6 +70,10 @@ llm-doctor:
 	@echo "Probing configured LLM profiles..."
 	$(PYTHON) -m payguard.cli llm doctor
 
+kb-index:
+	@echo "Building the grounding KB index (RULE facts + TRAIN examples only)…"
+	$(PYTHON) -m payguard.detector.retrieval
+
 audit-verify:
 	$(PYTHON) -m payguard.shared.audit_verify
 

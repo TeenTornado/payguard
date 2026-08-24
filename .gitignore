@@ -33,3 +33,6 @@ web/next-env.d.ts
 # sandbox target artifacts
 examples/targets/*/node_modules/
 examples/targets/*/.sandbox.log
+
+# KB vector cache (rebuilt from dataset/kb_index/chunks.jsonl, which IS committed)
+dataset/kb_index/chroma/
