@@ -13,6 +13,9 @@ PY="$ROOT/.venv/bin/python"
 export DATABASE_URL="${DATABASE_URL:-postgresql+asyncpg://payguard:payguard@localhost:5432/payguard}"
 export SANDBOX_RUNTIME="${SANDBOX_RUNTIME:-subprocess}"
 export PAYGUARD_ENV="${PAYGUARD_ENV:-TEST}"
+# Use the local Ollama analyzer fallback so the console shows llm=ok offline (opt-in so it
+# never changes eval semantics). Requires `ollama serve` + the model in config/llm_limits.yml.
+export PAYGUARD_OLLAMA_FALLBACK="${PAYGUARD_OLLAMA_FALLBACK:-1}"
 
 echo "▸ migrating database"
 DATABASE_URL="$DATABASE_URL" "$PY" -m alembic upgrade head >/dev/null 2>&1 || {
