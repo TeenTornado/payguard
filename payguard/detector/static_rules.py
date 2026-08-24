@@ -144,6 +144,8 @@ _DP_R3_DEDUP = re.compile(
     r"\b(already.*processed|already.*handled|already.*seen|"
     r"mark.*processed|set.*processed|event_log|processed_events|"
     r"ProcessedEvent|EventLog|idempoten|"
+    r"processed[_-]?events?|seen[_-]?events?|"  # snake/camel Set names
+    r"(has|includes|add)\s*\(\s*event[_-]?id|"  # Set/collection ops keyed on the event id
     r"(find|get|fetch|lookup|exists|filter|query)\s*\(.*event_id|"
     r"(find|get|fetch|lookup|exists|filter|query)\s*\(.*payment_id)\b",
     re.I,
