@@ -182,6 +182,14 @@ function VerificationTab({ finding, onRefresh }: { finding: Finding; onRefresh?:
   const [verifying, setVerifying] = useState(false)
   const [streamMessages, setStreamMessages] = useState<string[]>([])
   const [streamStatus, setStreamStatus] = useState<VerificationStatus | 'RUNNING' | null>(null)
+  const [verdict, setVerdict] = useState<{
+    status: string
+    measured_impact_paise?: number | null
+    proof_summary?: string | null
+    observed_behavior?: string | null
+    error_code?: string | null
+    attempts?: number | null
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const latestVerification =
@@ -193,6 +201,7 @@ function VerificationTab({ finding, onRefresh }: { finding: Finding; onRefresh?:
     setVerifying(true)
     setStreamMessages([])
     setStreamStatus('RUNNING')
+    setVerdict(null)
     setError(null)
 
     try {
@@ -207,11 +216,19 @@ function VerificationTab({ finding, onRefresh }: { finding: Finding; onRefresh?:
           }
           if (data.status) {
             setStreamStatus(data.status)
-            if (data.status !== 'RUNNING') {
-              es.close()
-              setVerifying(false)
-              onRefresh?.()
-            }
+          }
+          if (data.done) {
+            setVerdict({
+              status: data.status,
+              measured_impact_paise: data.measured_impact_paise,
+              proof_summary: data.proof_summary,
+              observed_behavior: data.observed_behavior,
+              error_code: data.error_code,
+              attempts: data.attempts,
+            })
+            es.close()
+            setVerifying(false)
+            onRefresh?.()
           }
         } catch {
           // ignore
@@ -326,10 +343,45 @@ function VerificationTab({ finding, onRefresh }: { finding: Finding; onRefresh?:
         </div>
       )}
 
-      {streamStatus && streamStatus !== 'RUNNING' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, color: '#6B7280' }}>Result:</span>
-          <StateBadge state={streamStatus} />
+      {verdict && (
+        <div
+          style={{
+            padding: '14px 16px',
+            borderRadius: 8,
+            border: `1px solid ${verdict.status === 'VERIFIED' ? '#A6F4C5' : verdict.status === 'ERROR' ? '#FECACA' : '#E5E7EB'}`,
+            background: verdict.status === 'VERIFIED' ? '#ECFDF3' : verdict.status === 'ERROR' ? '#FEF3F2' : '#F9FAFB',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <StateBadge state={verdict.status} />
+            <span style={{ fontSize: 12, color: '#6B7280' }}>tier EMULATED</span>
+            {verdict.attempts != null && verdict.attempts > 1 && (
+              <span style={{ fontSize: 12, color: '#B54708' }}>{verdict.attempts} gateway attempts</span>
+            )}
+            {verdict.error_code && (
+              <span style={{ fontSize: 11, color: '#B42318', fontFamily: 'JetBrains Mono, monospace' }}>
+                {verdict.error_code}
+              </span>
+            )}
+          </div>
+          {verdict.status === 'VERIFIED' && verdict.measured_impact_paise != null && (
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#067647', fontFamily: 'JetBrains Mono, monospace' }}>
+              MEASURED impact {formatPaise(verdict.measured_impact_paise)}
+            </div>
+          )}
+          {verdict.status === 'ERROR' && (
+            <div style={{ fontSize: 13, color: '#B42318' }}>
+              Verification could not complete — no MEASURED amount was written.
+            </div>
+          )}
+          {(verdict.proof_summary || verdict.observed_behavior) && (
+            <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
+              {verdict.proof_summary || verdict.observed_behavior}
+            </div>
+          )}
         </div>
       )}
 
@@ -354,7 +406,7 @@ function VerificationTab({ finding, onRefresh }: { finding: Finding; onRefresh?:
           cursor: verifying ? 'not-allowed' : 'pointer',
         }}
       >
-        {verifying ? 'Verifying...' : 'Request verification'}
+        {verifying ? 'Verifying…' : 'Verify'}
       </button>
     </div>
   )

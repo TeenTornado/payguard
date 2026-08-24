@@ -529,6 +529,9 @@ async def get_finding(finding_id: str, db: AsyncSession = Depends(get_db)) -> di
             "attempts": vr.attempts,
             "error_code": vr.error_code,
             "webhook_deliveries_json": vr.webhook_deliveries_json,
+            "state_probe_before": vr.state_probe_before,
+            "state_probe_after": vr.state_probe_after,
+            "steps": vr.responses_json,
             "started_at": vr.started_at.isoformat() if vr.started_at else None,
             "finished_at": vr.finished_at.isoformat() if vr.finished_at else None,
         }
@@ -681,6 +684,7 @@ async def stream_verification(verification_id: str) -> StreamingResponse:
         from payguard.shared.db import get_session_factory
         factory = get_session_factory()
         last_status: str | None = None
+        steps_sent = 0
         while True:
             try:
                 async with factory() as session:
@@ -690,16 +694,31 @@ async def stream_verification(verification_id: str) -> StreamingResponse:
                     if vr is None:
                         yield _sse_line({"error": "verification not found"})
                         return
+                    # Stream each new sandbox/verifier step (boot → deliver → probe → verdict).
+                    steps = vr.responses_json or []
+                    while steps_sent < len(steps):
+                        step = steps[steps_sent]
+                        yield _sse_line({"step": step.get("step"), "message": step.get("detail")})
+                        steps_sent += 1
                     status = vr.status
                     if status != last_status:
                         last_status = status
-                        yield _sse_line({"status": status, "proof_summary": vr.proof_summary})
+                        yield _sse_line({"status": status})
                     if status in _VERIFY_TERMINAL:
+                        yield _sse_line({
+                            "status": status,
+                            "proof_summary": vr.proof_summary,
+                            "observed_behavior": vr.observed_behavior,
+                            "measured_impact_paise": vr.measured_impact_paise,
+                            "error_code": vr.error_code,
+                            "attempts": vr.attempts,
+                            "done": True,
+                        })
                         return
             except Exception as exc:
                 yield _sse_line({"error": str(exc)})
                 return
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
 
