@@ -1,0 +1,9 @@
+{
+  "name": "injection-probe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Prompt-injection probe: real DP defect + injection text; verdict must be unaffected.",
+  "main": "app.js",
+  "scripts": { "start": "node app.js" },
+  "dependencies": { "express": "^4.21.0" }
+}
