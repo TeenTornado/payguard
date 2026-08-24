@@ -1,0 +1,35 @@
+# PayGuard target manifest — declares how to boot and drive this app so the
+# verifier can reproduce the defect against a REAL running process.
+name: dup-fulfillment-node
+defect_class: DUPLICATE_PAYMENT
+scenario: DP-2
+
+runtime: node20
+install: npm install --no-audit --no-fund   # skipped if node_modules already present
+start: node app.js
+port_env: PORT                # runner assigns a free port via this env var
+health: GET /health
+
+charge_endpoint:
+  method: POST
+  path: /charge
+  request_template:
+    intended_amount_inr: 1500
+
+webhook_endpoint:
+  method: POST
+  path: /webhook
+
+state_probe:
+  method: GET
+  path: /state
+  query: order_id
+  json_path: fulfilled_count
+
+# Which env vars the app reads. The runner injects only these; real creds never
+# enter the sandbox — the app talks to the EMULATE gateway via base_url.
+env_map:
+  key_id: RAZORPAY_KEY_ID
+  key_secret: RAZORPAY_KEY_SECRET
+  webhook_secret: RAZORPAY_WEBHOOK_SECRET
+  base_url: RAZORPAY_BASE_URL

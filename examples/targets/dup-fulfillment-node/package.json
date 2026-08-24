@@ -1,0 +1,13 @@
+{
+  "name": "dup-fulfillment-node",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vulnerable merchant target: webhook fulfillment without idempotency (DP-2).",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

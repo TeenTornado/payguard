@@ -1,0 +1,13 @@
+{
+  "name": "dup-fulfillment-node-safe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Safe control: webhook fulfillment with event-id idempotency (DP-2 NOT_REPRODUCED).",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
