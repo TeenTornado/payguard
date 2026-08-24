@@ -110,3 +110,63 @@ this class of failure immediately visible at setup time.
 
 **Lesson:** Validate credential type before assuming model access. `AQ.Ab8...` ≠ `AIza...`.
 Free-tier tokens may expose a different (smaller) model subset than documented.
+
+---
+
+## 2026-08-24 — payguard/api/app.py (SQLAlchemy 2.0 autobegin vs db.begin())
+
+**Symptom:** Every write route that read first — `POST /findings/{id}/remediation/propose`,
+`/dismiss`, `/escalate`, `/verify`, remediation approve/reject — returned 500. Direct DB
+scripts doing the same inserts worked. Reproduced in isolation:
+`InvalidRequestError: A transaction is already begun on this Session.`
+
+**Root cause:** `get_db` yielded a session that did not manage its own transaction, so each
+handler wrapped its writes in `async with db.begin()`. But the handler's first read (e.g.
+`_get_finding_or_404`) triggers SQLAlchemy 2.0 **autobegin** — a transaction is already open
+by the time `db.begin()` runs, and `begin()` on an already-begun session raises. Handlers
+that wrote *without* reading first (`create_scan`) were unaffected, which masked the pattern.
+An interim "fix" sprinkled `await db.commit()` into each route — correct-ish, but it spread
+transaction control across 8 handlers and left one route still using `db.begin()`.
+
+**Fix:** Made `get_db` own the unit of work — commit on clean return, rollback on exception
+— and removed all `begin()`/`commit()`/`rollback()` from route handlers. Transaction control
+now lives in exactly one place.
+
+**Test added:** `tests/unit/test_transaction_convention.py` (grep-guard: fails if any
+`db.begin(`/`db.commit(`/`db.rollback(` reappears in the API module);
+`tests/integration/test_transaction_convention.py::test_read_then_write_commits` (guards the
+autobegin regression) and `::test_write_that_raises_rolls_back` (asserts no orphan row / no
+half-written audit event on failure).
+
+**Lesson:** With SQLAlchemy 2.0, a read is a transaction start. Session transaction lifecycle
+belongs in the dependency, never in handlers — otherwise "read then write" is a landmine and
+per-route `commit()` calls are a smell that the boundary is in the wrong place.
+
+---
+
+## 2026-08-24 — cross-process chaos flag (API can't toggle the worker)
+
+**Symptom:** Flipping chaos in the API (an in-memory `_settings_override["chaos_enabled"]`)
+had no effect on scans. The worker kept calling the LLM; a "chaos" scan still reported
+`llm_status=OK`. The toggle looked like it worked (the API echoed it back) but nothing
+downstream changed.
+
+**Root cause:** The API, worker, and gateway are **separate OS processes**. An in-memory flag
+in the API process is invisible to the others. An interim fix used a boolean sentinel file
+(`/tmp/.payguard_chaos`, touched/unlinked) which worked for LLM chaos but couldn't express
+the gateway-failure fault the demo's API-failure beat needs.
+
+**Fix:** Introduced `payguard/shared/chaos.py` — a JSON sentinel `{"llm": bool, "gateway":
+bool}` read on demand by all three processes. The worker honors `llm` (skip analysis →
+`llm_status=FAILED`); the gateway honors `gateway` (deterministic 503 on `/v1/*`); the
+verifier's bounded retries turn that 503 into a terminal ERROR with no MEASURED amount.
+
+**Test added:** `tests/unit/test_chaos_sentinel.py` (round-trip, partial update, corrupt-file
+fail-safe); `tests/integration/test_money_safety_chaos.py` (gateway chaos → DP-2 ERROR after
+bounded retries, no MEASURED exposure; VERIFIED promotes MEASURED; a smuggled measured amount
+on a non-VERIFIED outcome is scrubbed).
+
+**Lesson:** Shared state between processes needs a shared medium — memory in one process is
+not it. The sentinel is a single global switch for the host (no per-user/tenant scope); that
+limitation is documented in `docs/failure-modes.md` so it isn't mistaken for production-grade
+config.

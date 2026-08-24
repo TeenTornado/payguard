@@ -1,6 +1,6 @@
 # PROGRESS.md
 
-Last updated: 2026-08-21
+Last updated: 2026-08-24
 
 ## Phase checklist
 
@@ -21,13 +21,26 @@ Last updated: 2026-08-21
 - [ ] **Phase 11** — Demo mode (target: Sep 3)
 - [ ] **Phase 12** — README, ADRs final, submission (target: Sep 3)
 
-## Next steps (current session)
+## Console + hardening (Aug 24)
 
-- Write payguard/shared/ (enums, config, audit)
-- Write SQLAlchemy models + Alembic migration
-- Write audit-verify make target + unit test
-- Write ADR-001..005
-- Write CI workflow
+- [x] Console vertical slice (FastAPI REST+SSE, Next.js 8-page console) wired to the real backend
+- [x] Transaction convention: `get_db` owns the unit of work (commit-on-return / rollback-on-error);
+      no route manages transactions. Grep-guard + read-then-write / rollback integration tests.
+- [x] Chaos realism: shared cross-process sentinel `{"llm","gateway"}`; worker honors `llm`,
+      gateway honors `gateway` (deterministic 503); two Settings toggles + `make chaos`.
+- [x] Verifier executor with bounded gateway retries; `persist_outcome` money-safety choke point
+      (MEASURED written only for VERIFIED). Worker now processes VERIFY jobs (no more eternal PENDING).
+- [x] Money-safety-under-chaos proven: gateway chaos → DP-2 ERROR after bounded retries, no MEASURED.
+- 101/101 tests green.
+
+## Next steps
+
+- Sandbox target runner so a healthy-gateway verification can reach VERIFIED-with-MEASURED in the
+  browser (today: BLOCKED without a target, ERROR under gateway chaos — both honest). See
+  `docs/failure-modes.md`.
+- Demo mode (`make demo` → `payguard.demo.seed`) so first load is never empty.
+- WI/AC verification scenarios wired through the executor (DP-2 is the reference path).
+- Dataset scale-up + frozen eval (Phase 4).
 
 ## Open questions
 
