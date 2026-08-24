@@ -97,7 +97,21 @@ def _seed() -> None:
         print(f"  ! verification ended {vr['status'] if vr else 'timeout'} "
               "(is the gateway up and SANDBOX_RUNTIME set?)")
 
-    print("\nDemo ready → open the console. Top finding is VERIFIED with a MEASURED amount.")
+    # Scan the SAFE control so the demo also has an LLM-only "AI finding — unverified":
+    # the LLM flags it as risky, but the sandbox would show the redelivery is a no-op.
+    safe = TARGET + "-safe"
+    print("scanning the safe control (for the AI-only finding)…")
+    sid2 = httpx.post(f"{API}/scans", json={"repo_path": safe}, timeout=10).json()["id"]
+    _wait_scan(sid2)
+    items2 = httpx.get(f"{API}/findings", params={"scan_id": sid2}, timeout=5).json()["items"]
+    ai = next((i for i in items2 if i["detector_source"] == "LLM"), None)
+    if ai:
+        print(f"  ✓ AI-only finding present (source=LLM, unverified): {ai['title']}")
+    else:
+        print("  · no LLM-only finding this run (local model varies) — the VERIFIED beat still holds")
+
+    print("\nDemo ready → open the console. Top finding is VERIFIED with a MEASURED amount;")
+    print("the safe control carries an 'AI finding — unverified' (no measured amount).")
 
 
 if __name__ == "__main__":

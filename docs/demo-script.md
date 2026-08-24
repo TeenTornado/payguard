@@ -48,9 +48,18 @@ subprocess runner with a loud warning.
 8. **Audit log.** Real timestamps, a hash chain (click *Verify chain* → OK), and a
    `VERIFIER / VERIFICATION_COMPLETED` row. Human actions read `HUMAN:demo`.
 
-9. **Safe control (optional).** Scan `examples/targets/dup-fulfillment-node-safe` and Verify
-   its DUPLICATE_PAYMENT finding → **NOT_REPRODUCED** (the handler dedups on the event id),
-   no MEASURED amount. Proves the verifier doesn't cry wolf.
+9. **The AI-judgment beat (one click).** The seed leaves an **AI finding — unverified** on the
+   safe control: the DUPLICATE_PAYMENT finding there is **source = LLM** (only the model flagged
+   it; static did not). Open it — the header is watermarked *"AI finding — unverified"* and there
+   is **no MEASURED amount**. Click **Verify** → the sandbox drives the real handler and returns
+   **NOT_REPRODUCED** (the redelivery is a no-op — the dedup holds). The LLM proposed; the
+   verifier disposed. This is the single strongest signal that the AI never decides money-safety
+   alone.
+
+10. **All three classes verify.** Repeat step 3–4 for a WEBHOOK_INTEGRITY finding
+    (`webhook-forgeable-node` → forged webhook accepted → VERIFIED, MEASURED ₹1,500) and an
+    AMOUNT_CURRENCY finding (`amount-mismatch-node` → order created for 1500 paise not 150000 →
+    VERIFIED, MEASURED ₹1,485 discrepancy). Each safe control → NOT_REPRODUCED.
 
 ---
 
