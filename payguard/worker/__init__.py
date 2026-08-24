@@ -93,14 +93,8 @@ async def _run_scan(scan_id: str, repo_path: str, session_factory) -> None:
                 "js_files": js_count,
                 "repo_path": repo_path,
             }
-            await append_audit_event(
-                session,
-                actor=AuditActor.SYSTEM,
-                event=AuditEventKind.SCAN_STARTED,
-                object_type="Scan",
-                object_id=scan_id,
-                metadata={"repo_path": repo_path, "py_files": py_count, "js_files": js_count},
-            )
+            # SCAN_STARTED is emitted once, by the API when the scan is created. The worker
+            # does not re-emit it here (that produced two SCAN_STARTED rows per scan).
 
     # ── DISCOVER ─────────────────────────────────────────────────────────
     async with session_factory() as session:
