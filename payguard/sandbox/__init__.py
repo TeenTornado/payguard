@@ -239,7 +239,7 @@ async def _boot_docker(target_dir: Path, gateway_url: str, manifest: Manifest) -
     name = f"pg-sandbox-{manifest.name}-{port}"
     args = [
         "docker", "run", "-d", "--rm", "--name", name,
-        "--read-only", "--tmpfs", "/tmp", "--tmpfs", "/app/.cache",
+        "--read-only", "--tmpfs", "/tmp",
         "--cpus", "1", "--memory", "512m", "--pids-limit", "128",
         "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
         "-p", f"127.0.0.1:{port}:{port}",
@@ -248,7 +248,8 @@ async def _boot_docker(target_dir: Path, gateway_url: str, manifest: Manifest) -
     ]
     for k, v in env.items():
         args += ["-e", f"{k}={v}"]
-    args += [image]
+    # image, then the target's start command (the base image CMD is a placeholder).
+    args += [image, *shlex.split(manifest.start)]
     proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
                                                 stderr=asyncio.subprocess.STDOUT)
     out, _ = await proc.communicate()
@@ -281,9 +282,18 @@ async def boot_target(target_dir: str | Path, gateway_url: str, *, runtime: str 
     rt = runtime or resolve_runtime()
     if rt == "docker":
         if not docker_available():
-            log.warning("docker requested but daemon unavailable — falling back to subprocess (no isolation)")
+            log.warning(
+                "SANDBOX: docker runtime selected but the daemon is unavailable — falling back "
+                "to the SUBPROCESS runner, which has NO ISOLATION (dev only). Start Docker to "
+                "restore the isolated sandbox."
+            )
             rt = "subprocess"
         else:
+            log.info("SANDBOX: booting %s in the Docker runtime (isolated)", manifest.name)
             return await _boot_docker(target_dir, gateway_url, manifest)
-    log.info("booting target %s via subprocess runtime (dev, no isolation)", manifest.name)
+    log.warning(
+        "SANDBOX: booting %s via the SUBPROCESS runner — NO ISOLATION (dev only). "
+        "This is not the secure path; unset SANDBOX_RUNTIME to use Docker.",
+        manifest.name,
+    )
     return await _boot_subprocess(target_dir, gateway_url, manifest)

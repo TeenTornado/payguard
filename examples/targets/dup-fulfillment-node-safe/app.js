@@ -69,6 +69,7 @@ app.get('/state', (req, res) => {
   res.json({ order_id: orderId, fulfilled_count: fulfillment[orderId] || 0 })
 })
 
-app.listen(PORT, '127.0.0.1', () => {
+// Bind all interfaces (see dup-fulfillment-node/app.js for why).
+app.listen(PORT, () => {
   console.log(`dup-fulfillment-safe target listening on ${PORT} (gateway=${BASE_URL})`)
 })

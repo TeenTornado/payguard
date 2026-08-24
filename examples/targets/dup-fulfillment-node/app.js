@@ -72,6 +72,8 @@ app.get('/state', (req, res) => {
   res.json({ order_id: orderId, fulfilled_count: fulfillment[orderId] || 0 })
 })
 
-app.listen(PORT, '127.0.0.1', () => {
+// Bind all interfaces: in the Docker sandbox the published port forwards to the
+// container's 0.0.0.0; on the host (subprocess) 127.0.0.1 is included.
+app.listen(PORT, () => {
   console.log(`dup-fulfillment target listening on ${PORT} (gateway=${BASE_URL})`)
 })

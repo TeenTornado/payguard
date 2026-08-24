@@ -3,13 +3,15 @@
 **Setup (once):** Postgres running locally, then:
 
 ```bash
-make demo          # migrates, starts gateway/api/worker/web (subprocess sandbox), seeds one VERIFIED scan
+make demo          # migrates, builds the sandbox image, starts services, seeds one VERIFIED scan
 ```
 
 Open **http://localhost:3000**. The seed leaves one clean scan of the dup-fulfillment
 target whose CRITICAL finding is already **VERIFIED with MEASURED ₹1,500** — the money
 moment is one click away. No Razorpay keys are needed; everything runs on the EMULATE
-gateway. (Docker daemon up? `make demo-docker` runs the isolated container sandbox instead.)
+gateway. The sandbox uses the **isolated Docker runtime** by default (see
+`docs/threat-model.md`); if the Docker daemon is down it falls back to a no-isolation
+subprocess runner with a loud warning.
 
 ---
 
@@ -56,6 +58,8 @@ gateway. (Docker daemon up? `make demo-docker` runs the isolated container sandb
 
 - **Real:** the target boots as a live process; the gateway signs and delivers real
   webhooks; the ₹1,500 is a counted duplicate fulfillment (state probe 0→2), not a guess.
-- **Limited (documented in `docs/failure-modes.md`):** with the Docker daemon down the
-  sandbox runs as a **subprocess (no isolation, dev-only)**; the chaos switch is a single
-  host-global flag. Both are honest fallbacks, not fakes.
+- **Isolation:** the sandbox is the **Docker runtime** (read-only rootfs, dropped caps,
+  cpu/mem/pids limits, gateway-only network, no real creds) — see `docs/threat-model.md`.
+- **Limited (documented in `docs/failure-modes.md`):** if the Docker daemon is down the sandbox
+  falls back to a no-isolation subprocess runner (dev only, loud warning); the chaos switch is a
+  single host-global flag. Honest fallbacks, not fakes.

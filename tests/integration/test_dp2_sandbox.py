@@ -108,3 +108,26 @@ async def test_dp2_gateway_chaos_errors_without_measuring(gateway_url):
     assert outcome.error_code == "GATEWAY_UNAVAILABLE"
     assert outcome.measured_impact_paise is None
     assert outcome.attempts >= 2
+
+
+def _docker_up() -> bool:
+    try:
+        return subprocess.run(["docker", "info"], capture_output=True, timeout=5).returncode == 0
+    except Exception:
+        return False
+
+
+@pytest.mark.skipif(not _docker_up(), reason="docker daemon not available")
+@pytest.mark.asyncio
+async def test_dp2_verified_in_docker_runtime(gateway_url, monkeypatch):
+    """The real path: DP-2 → VERIFIED in the isolated Docker runtime."""
+    # Ensure the base image exists.
+    if subprocess.run(["docker", "image", "inspect", "payguard-sandbox-node20"],
+                      capture_output=True).returncode != 0:
+        subprocess.run(["docker", "build", "-t", "payguard-sandbox-node20",
+                        str(ROOT / "sandbox-images" / "node20")], check=True,
+                       capture_output=True)
+    monkeypatch.setenv("SANDBOX_RUNTIME", "docker")
+    outcome = await drive_dp2_sandbox(gateway_url, TARGET_VULN, 150000)
+    assert outcome.status == VerificationStatus.VERIFIED.value, outcome.observed_behavior
+    assert outcome.measured_impact_paise == 150000
