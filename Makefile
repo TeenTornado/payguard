@@ -1,5 +1,5 @@
 .PHONY: setup up down migrate test lint typecheck dataset eval-dev eval eval-smoke \
-        audit-verify demo chaos seed-examples llm-doctor clean
+        audit-verify demo demo-docker chaos seed-examples llm-doctor clean
 
 PYTHON := .venv/bin/python
 UV := uv
@@ -70,7 +70,13 @@ llm-doctor:
 audit-verify:
 	$(PYTHON) -m payguard.shared.audit_verify
 
+# Local, Docker-free demo: starts gateway/api/worker/web (subprocess sandbox) and seeds
+# one clean VERIFIED scan. Requires Postgres running locally.
 demo:
+	bash scripts/dev-up.sh
+
+# Docker variant (when the daemon is available): full isolation via compose.
+demo-docker:
 	PAYGUARD_DEMO=1 GATEWAY_MODE=EMULATE docker compose up -d --build
 	$(PYTHON) -m payguard.demo.seed
 	@echo "Demo running. Visit http://localhost:3000"
@@ -78,9 +84,6 @@ demo:
 chaos:
 	@echo "Usage: make chaos ARGS='--llm on --gateway off'  |  make chaos ARGS='--off'"
 	$(PYTHON) -m payguard.shared.chaos $(ARGS)
-
-llm-doctor:
-	$(PYTHON) -m payguard.cli llm doctor
 
 seed-examples:
 	$(PYTHON) -m payguard.dataset.seed_examples
