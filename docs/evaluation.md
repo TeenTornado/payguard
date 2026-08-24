@@ -88,3 +88,26 @@ Re-run after quota resets; compare partial-vs-full run totals.
 **OpenRouter caveat:** `:free` model variants on OpenRouter can be delisted without notice.
 Eval runs that depend on specific model versions may silently route to a different model.
 Always use provider-direct keys (Gemini, Groq) for reproducible eval runs.
+
+## Frozen test-split results — 2026-08-24 (A/B/C, n=11)
+
+First real evaluation on the frozen test split (`dataset/splits/test.manifest.json`, 11 samples).
+Analyzer: local **Ollama `qwen2.5:7b`** (no hosted key configured; `PAYGUARD_OLLAMA_FALLBACK=1`).
+Reports: `eval/reports/test/{A,B,C}_test_n11_*.json`; ledger appended.
+
+| System | Macro P | Macro R | Macro F1 | Per-class notes |
+|--------|--------:|--------:|---------:|-----------------|
+| A (static rules)   | 0.889 | 1.000 | 0.941 | DP 1.0 / WI 0.80 (1 FP) / AC 1.0 |
+| B (LLM only)       | 0.485 | 0.778 | 0.597 | DP R=0.33 (2 FN); **WI 9 FP**, **AC 8 FP** |
+| C (static ∪ LLM)   | 0.485 | 1.000 | 0.653 | DP 1.0; WI/AC precision wrecked by the LLM's FPs |
+
+**Reading.** Static (A) is precise here; the local LLM (B) is wildly over-eager on WEBHOOK_INTEGRITY
+and AMOUNT_CURRENCY (17 false positives across 11 samples), and C = A∪LLM inherits every one — C's
+macro precision collapses to 0.485 while recall is perfect. This is precisely the failure mode the
+grounded/retrieval-augmented analyzer targets: **cut the LLM's false positives without losing recall.**
+The next phase measures C vs C+RAG on this same frozen split.
+
+**Caveats (honest):** n=11 is small — high variance; a single FP swings per-class precision a lot.
+These numbers are a real baseline, not a leaderboard claim. The dataset scale-up (≥240 samples) needs a
+Groq generation key and remains separate. `qwen2.5:7b` is a weak analyzer; a stronger hosted model would
+likely move B/C, but the point of C+RAG is to improve *whatever* analyzer is in use.

@@ -56,8 +56,11 @@ eval-dev-all:
 	$(PYTHON) -m payguard.eval.run --split val --system C
 
 eval:
-	@echo "Running evaluation on TEST split — appending to eval/reports/test/eval_ledger.jsonl"
-	$(PYTHON) -m payguard.eval.run --split test
+	@echo "Running A/B/C evaluation on the frozen TEST split — appending to eval/reports/test/eval_ledger.jsonl"
+	@echo "  (B/C use the hosted analyzer if a key is set, else the local Ollama analyzer)"
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system A
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system B
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system C
 
 eval-smoke:
 	@echo "Running smoke eval (5 samples)..."
