@@ -20,6 +20,9 @@ node_modules/
 !dataset/llm_cache/.gitkeep
 # Legacy reports directory (pre-v2); new reports go to eval/reports/dev/ and eval/reports/test/
 reports/
+# but keep the FROZEN test-split eval reports (auditable freeze ledger). dev/ stays ignored.
+!eval/reports/
+eval/reports/dev/
 *.log
 docker-compose.override.yml
 
