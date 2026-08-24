@@ -86,6 +86,7 @@ export interface VerificationResult {
   id: string
   status: VerificationStatus
   scenario_id?: string
+  tier?: string
   observed_behavior?: string | null
   proof_summary?: string | null
   measured_impact_paise?: number | null
@@ -140,11 +141,12 @@ export interface FindingsResponse {
 
 export interface AuditEvent {
   seq: number
-  timestamp: string
+  ts: string
   actor: string
   event: string
-  object_type: string
-  object_id: string
+  object_type: string | null
+  object_id: string | null
+  metadata_json?: Record<string, unknown> | null
   hash: string
 }
 

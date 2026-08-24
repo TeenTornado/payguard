@@ -423,17 +423,33 @@ function ExposureTab({ finding }: { finding: Finding }) {
     )
   }
 
+  const verified = (finding.verification_results || []).find((v) => v.status === 'VERIFIED')
+  const tier = verified?.tier ?? 'EMULATED'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <ExposureBadge kind={finding.exposure_kind} paise={finding.exposure_paise} />
       </div>
 
-      {finding.exposure_kind === 'ESTIMATED' && finding.assumptions && (
-        <div>
-          <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 8 }}>
-            Assumptions
-          </div>
+      {finding.exposure_kind === 'MEASURED' ? (
+        <div
+          style={{
+            padding: '12px 14px',
+            background: '#ECFDF3',
+            border: '1px solid #A6F4C5',
+            borderRadius: 6,
+            fontSize: 13,
+            color: '#067647',
+            lineHeight: 1.6,
+          }}
+        >
+          <strong>Measured</strong> — this amount was observed by driving the running target in
+          the sandbox and counting a real duplicate fulfillment (tier {tier}). It is not an
+          estimate.
+        </div>
+      ) : (
+        <>
           <div
             style={{
               padding: '12px 14px',
@@ -443,12 +459,35 @@ function ExposureTab({ finding }: { finding: Finding }) {
               fontSize: 13,
               color: '#92400E',
               lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
             }}
           >
-            {finding.assumptions}
+            <strong>Estimated</strong>, not measured — a per-class heuristic for a{' '}
+            {finding.defect_class?.replace(/_/g, ' ').toLowerCase()} finding. Run <em>Verify</em> to
+            replace this with a measured amount. This is potential exposure, not money saved.
           </div>
-        </div>
+          {finding.assumptions && (
+            <div>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 8 }}>
+                Assumptions
+              </div>
+              <pre
+                style={{
+                  margin: 0,
+                  padding: '12px 14px',
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: '#374151',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  overflowX: 'auto',
+                }}
+              >
+                {finding.assumptions}
+              </pre>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -69,14 +69,35 @@ export interface FindingsFilter {
   defect_class?: string
 }
 
-export function listFindings(filter: FindingsFilter = {}): Promise<FindingsResponse> {
+export async function listFindings(filter: FindingsFilter = {}): Promise<FindingsResponse> {
   const params = new URLSearchParams()
   if (filter.scan_id) params.set('scan_id', filter.scan_id)
   if (filter.state) params.set('state', filter.state)
   if (filter.severity) params.set('severity', filter.severity)
   if (filter.defect_class) params.set('defect_class', filter.defect_class)
   const qs = params.toString()
-  return apiFetch<FindingsResponse>(`/findings${qs ? `?${qs}` : ''}`)
+  const raw = await apiFetch<{ items: any[]; total: number }>(`/findings${qs ? `?${qs}` : ''}`)
+  // Map API field names → the FindingListItem shape the UI expects.
+  const items: FindingListItem[] = raw.items.map((f) => ({
+    id: f.id,
+    scan_id: f.scan_id,
+    severity: f.severity,
+    state: f.state,
+    defect_class: f.defect_class,
+    detector_source: f.detector_source,
+    title: f.title ?? f.defect_class?.replace(/_/g, ' '),
+    file_path: f.file ?? null,
+    line_number: f.start_line ?? null,
+    exposure_kind:
+      f.exposure_measured_paise != null
+        ? 'MEASURED'
+        : f.exposure_estimated_paise != null
+          ? 'ESTIMATED'
+          : null,
+    exposure_paise: f.exposure_measured_paise ?? f.exposure_estimated_paise ?? null,
+    created_at: f.created_at,
+  }))
+  return { items, total: raw.total }
 }
 
 export function getFinding(id: string): Promise<Finding> {

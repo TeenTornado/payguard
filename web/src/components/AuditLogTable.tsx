@@ -132,7 +132,7 @@ export function AuditLogTable() {
                     {ev.seq}
                   </td>
                   <td style={{ color: '#9CA3AF', fontSize: 12, whiteSpace: 'nowrap' }}>
-                    {formatDate(ev.timestamp)}
+                    {formatDate(ev.ts)}
                   </td>
                   <td style={{ fontSize: 12, color: '#374151' }}>{ev.actor}</td>
                   <td style={{ fontSize: 12, fontWeight: 500, color: '#111827' }}>{ev.event}</td>
