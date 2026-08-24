@@ -17,7 +17,7 @@ interface Props {
 
 const SEVERITY_OPTIONS: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 const STATE_OPTIONS: FindingState[] = ['ADVISORY', 'QUEUED_FOR_VERIFICATION', 'VERIFIED', 'UNVERIFIED', 'EXCEPTION', 'DISMISSED']
-const CLASS_OPTIONS: DefectClass[] = ['DUPLICATE_PAYMENT', 'WEBHOOK_INTEGRITY', 'AMOUNT_CURRENCY']
+const CLASS_OPTIONS: DefectClass[] = ['DUPLICATE_PAYMENT', 'WEBHOOK_INTEGRITY', 'AMOUNT_CURRENCY', 'SUSPICIOUS_CONTENT']
 
 export function FindingsTable({ scanId, initialState, showFilters = true }: Props) {
   const [items, setItems] = useState<FindingListItem[]>([])

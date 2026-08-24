@@ -25,7 +25,7 @@ export type ScanState =
   | 'DONE'
   | 'FAILED'
 
-export type DefectClass = 'DUPLICATE_PAYMENT' | 'WEBHOOK_INTEGRITY' | 'AMOUNT_CURRENCY'
+export type DefectClass = 'DUPLICATE_PAYMENT' | 'WEBHOOK_INTEGRITY' | 'AMOUNT_CURRENCY' | 'SUSPICIOUS_CONTENT'
 
 export type DetectorSource = 'STATIC' | 'LLM' | 'BOTH'
 
