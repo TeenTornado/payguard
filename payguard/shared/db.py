@@ -40,6 +40,20 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency: yield a session, commit on clean return, roll back on error.
+
+    Route handlers MUST NOT call ``session.begin()``, ``commit()`` or ``rollback()``
+    themselves. This is the single place a request's unit of work is committed, so a
+    handler that reads (which starts SQLAlchemy 2.0 autobegin) and then writes cannot
+    collide with a nested ``begin()``. See docs/failure-modes.md and FAILURES.md
+    (2026-08-24, autobegin vs db.begin()). Enforced by
+    tests/unit/test_transaction_convention.py.
+    """
     factory = get_session_factory()
     async with factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
