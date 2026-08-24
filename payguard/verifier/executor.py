@@ -29,13 +29,22 @@ from payguard.shared.enums import (
     FindingState,
     VerificationStatus,
 )
-from payguard.verifier.scenarios import SCENARIO_DP2_EXPECTED, VerificationOutcome
+from payguard.verifier.scenarios import (
+    SCENARIO_AC1_EXPECTED,
+    SCENARIO_DP2_EXPECTED,
+    SCENARIO_WI1_EXPECTED,
+    VerificationOutcome,
+)
 
 log = logging.getLogger("payguard.verifier")
 
 GATEWAY_MAX_ATTEMPTS = 3
 GATEWAY_BACKOFF_SECONDS = 0.2
 GATEWAY_TIMEOUT_SECONDS = 5.0
+
+# Basic base64("rzp_test_DUMMY:dummy_secret") — the emulator's fixed test key. The gateway
+# only checks the rzp_test_ prefix, never a live secret.
+_DUMMY_AUTH = {"Authorization": "Basic cnpwX3Rlc3RfRFVNTVk6ZHVtbXlfc2VjcmV0"}
 
 _RETRYABLE_EXC = (
     httpx.TimeoutException,
@@ -322,6 +331,7 @@ async def execute_verification(session_factory, verification_id: str, finding_id
             payload = (job.payload_json or {}) if job else {}
             target_dir = payload.get("target_dir") or (repo.locator if repo else None)
             order_amount = payload.get("order_amount_paise") or 150000
+            scenario = _CLASS_TO_SCENARIO.get(finding.defect_class)
             await append_audit_event(
                 session,
                 actor=AuditActor.VERIFIER,
@@ -341,7 +351,7 @@ async def execute_verification(session_factory, verification_id: str, finding_id
                 if v is not None:
                     v.responses_json = list(steps)
 
-    outcome = await drive_dp2_sandbox(gateway_url, target_dir, order_amount, emit)
+    outcome = await drive_sandbox_scenario(gateway_url, target_dir, order_amount, emit, scenario=scenario)
     outcome.responses_log = steps
 
     async with session_factory() as session:
@@ -375,27 +385,46 @@ async def _noop_emit(step: str, detail: str) -> None:
     return None
 
 
-async def drive_dp2_sandbox(
+# scenario id → (runner, expected-behavior text)
+def _scenario_runners():
+    return {
+        "DP-2": (_run_dp2_on_sandbox, SCENARIO_DP2_EXPECTED),
+        "WI-1": (_run_wi1_on_sandbox, SCENARIO_WI1_EXPECTED),
+        "AC-1": (_run_ac1_on_sandbox, SCENARIO_AC1_EXPECTED),
+    }
+
+
+# defect class → scenario id
+_CLASS_TO_SCENARIO = {
+    "DUPLICATE_PAYMENT": "DP-2",
+    "WEBHOOK_INTEGRITY": "WI-1",
+    "AMOUNT_CURRENCY": "AC-1",
+}
+
+
+async def drive_sandbox_scenario(
     gateway_url: str,
     target_dir: str | None,
     order_amount_paise: int,
     emit=_noop_emit,
+    scenario: str | None = None,
 ) -> VerificationOutcome:
-    """Boot the target, deliver the same signed webhook twice, and measure the impact.
+    """Boot the target and run the scenario its manifest declares (DP-2 / WI-1 / AC-1).
 
-    Verdicts:
-      - after == before + 2 → VERIFIED (measured = one duplicated fulfillment)
-      - after == before + 1 → NOT_REPRODUCED (handler deduplicated)
-      - probe unreachable/partial → INCONCLUSIVE
-      - target won't boot / not a runnable target → BLOCKED
-      - gateway unavailable after retries (e.g. gateway chaos) → ERROR, no MEASURED
+    Common verdict grammar across all scenarios:
+      - VERIFIED       → the defect reproduced (measured amount attached)
+      - NOT_REPRODUCED → the safe behaviour held (no measured amount)
+      - INCONCLUSIVE   → probe/response ambiguous
+      - BLOCKED        → not a runnable target / unknown scenario / boot failed
+      - ERROR          → gateway unavailable after bounded retries (e.g. gateway chaos)
     """
     from payguard.sandbox import SandboxError, boot_target, load_manifest
 
-    if not target_dir or load_manifest(target_dir) is None:
+    manifest = load_manifest(target_dir) if target_dir else None
+    if manifest is None:
         return VerificationOutcome(
             status=VerificationStatus.BLOCKED.value,
-            expected_behavior=SCENARIO_DP2_EXPECTED,
+            expected_behavior="A runnable target is required to verify this finding.",
             observed_behavior=(
                 "This finding's repository has no payguard.yml, so there is no runnable "
                 "target to drive. Verification is blocked (static code can be read but not "
@@ -405,24 +434,41 @@ async def drive_dp2_sandbox(
             measured_impact_paise=None,
         )
 
+    scenario = (scenario or manifest.scenario or "").upper()
+    entry = _scenario_runners().get(scenario)
+    if entry is None:
+        return VerificationOutcome(
+            status=VerificationStatus.BLOCKED.value,
+            expected_behavior="A supported scenario (DP-2 / WI-1 / AC-1) is required.",
+            observed_behavior=f"Target declares scenario '{scenario}', which has no verifier.",
+            error_code="UNSUPPORTED_SCENARIO",
+            measured_impact_paise=None,
+        )
+    runner, _expected = entry
+
     await emit("boot", f"Booting sandbox target from {target_dir}")
     try:
         sandbox = await boot_target(target_dir, gateway_url)
     except SandboxError as exc:
         return VerificationOutcome(
             status=VerificationStatus.BLOCKED.value,
-            expected_behavior=SCENARIO_DP2_EXPECTED,
+            expected_behavior=_expected,
             observed_behavior=f"Target failed to boot: {exc}",
             error_code="TARGET_BOOT_FAILED",
             measured_impact_paise=None,
         )
 
-    await emit("health", f"Target healthy at {sandbox.base_url} (runtime={sandbox.runtime})")
+    await emit("health", f"Target healthy at {sandbox.base_url} "
+                         f"(runtime={sandbox.runtime}, scenario={scenario})")
     try:
-        return await _run_dp2_on_sandbox(gateway_url, sandbox, order_amount_paise, emit)
+        return await runner(gateway_url, sandbox, order_amount_paise, emit)
     finally:
         await emit("teardown", "Tearing down sandbox")
         await sandbox.teardown()
+
+
+# Back-compat alias (tests/callers): the manifest picks the scenario, so this works for any.
+drive_dp2_sandbox = drive_sandbox_scenario
 
 
 async def _run_dp2_on_sandbox(gateway_url, sandbox, order_amount_paise, emit) -> VerificationOutcome:
@@ -580,4 +626,221 @@ async def _run_dp2_on_sandbox(gateway_url, sandbox, order_amount_paise, emit) ->
         error_code="NO_STATE_CHANGE",
         measured_impact_paise=None,
         **common,
+    )
+
+
+async def _setup_funded_payment(client, gateway_url, order_amount_paise) -> tuple[str, str, int]:
+    """Reset the emulator, then create → checkout → capture an order. Returns
+    (order_id, payment_id, gateway_attempts). Raises GatewayUnavailable under chaos."""
+    try:
+        await client.post(
+            f"{gateway_url}/_test/reset",
+            json={"key_id": "rzp_test_DUMMY", "key_secret": "dummy_secret",
+                  "webhook_secret": "dummy_webhook_secret"},
+            timeout=GATEWAY_TIMEOUT_SECONDS,
+        )
+    except _RETRYABLE_EXC:
+        pass
+    attempts = 0
+    order_resp = await gateway_request(
+        client, "POST", f"{gateway_url}/v1/orders",
+        json={"amount": order_amount_paise, "currency": "INR"}, headers=_DUMMY_AUTH,
+    )
+    attempts += len(order_resp.__dict__.get("_pg_attempts", []))
+    order_id = _safe_json(order_resp).get("id", "")
+    checkout_resp = await gateway_request(
+        client, "POST", f"{gateway_url}/v1/internal/simulate-checkout",
+        json={"order_id": order_id, "method": "card", "outcome": "success"},
+    )
+    payment_id = _safe_json(checkout_resp).get("payment_id", "")
+    cap_resp = await gateway_request(
+        client, "POST", f"{gateway_url}/v1/payments/{payment_id}/capture",
+        json={"amount": order_amount_paise, "currency": "INR"}, headers=_DUMMY_AUTH,
+    )
+    attempts += len(cap_resp.__dict__.get("_pg_attempts", []))
+    return order_id, payment_id, attempts
+
+
+def _gateway_error(expected: str, gu: "GatewayUnavailable", *, stage: str, extra=None) -> VerificationOutcome:
+    return VerificationOutcome(
+        status=VerificationStatus.ERROR.value,
+        expected_behavior=expected,
+        observed_behavior=(
+            f"Gateway did not respond during {stage} after {len(gu.attempts)} attempt(s). "
+            "Verification aborted before any side effect; no impact measured."
+        ),
+        requests_log=[{"target": f"gateway/{stage}", "attempts": gu.attempts}],
+        webhook_deliveries=extra or [],
+        error_code="GATEWAY_UNAVAILABLE",
+        measured_impact_paise=None,
+        attempts=len(gu.attempts),
+    )
+
+
+# ─── WI-1: forged webhook accepted (no signature verification) ────────────────
+
+
+async def _run_wi1_on_sandbox(gateway_url, sandbox, order_amount_paise, emit) -> VerificationOutcome:
+    async with httpx.AsyncClient() as client:
+        try:
+            await emit("gateway", f"Creating a funded ₹{order_amount_paise // 100} order via EMULATE gateway")
+            order_id, payment_id, total_attempts = await _setup_funded_payment(
+                client, gateway_url, order_amount_paise
+            )
+        except GatewayUnavailable as gu:
+            return _gateway_error(SCENARIO_WI1_EXPECTED, gu, stage="setup")
+
+        state_before = await _probe_state(sandbox.probe_url(order_id), client)
+        count_before = (state_before or {}).get("fulfilled_count")
+        if count_before is None:
+            return VerificationOutcome(
+                status=VerificationStatus.INCONCLUSIVE.value, expected_behavior=SCENARIO_WI1_EXPECTED,
+                observed_behavior="State probe unreachable before delivery.",
+                error_code="PROBE_UNAVAILABLE", measured_impact_paise=None, attempts=total_attempts,
+            )
+        await emit("probe-before", f"fulfilled_count(before) = {count_before}")
+
+        # Deliver ONE FORGED event (invalid signature).
+        try:
+            resp = await gateway_request(
+                client, "POST", f"{gateway_url}/v1/internal/deliver-webhook",
+                json={"target_url": sandbox.webhook_url, "event_type": "payment.captured",
+                      "payment_id": payment_id, "use_wrong_signature": True},
+            )
+        except GatewayUnavailable as gu:
+            return _gateway_error(SCENARIO_WI1_EXPECTED, gu, stage="deliver-webhook")
+        total_attempts += len(resp.__dict__.get("_pg_attempts", []))
+        body = _safe_json(resp)
+        target_status = body.get("status")
+        deliveries = [{"delivery": 1, "signature_status": "forged/invalid",
+                       "target_http_status": target_status}]
+        await emit("deliver", f"Delivered a FORGED payment.captured (bad signature) "
+                              f"→ target HTTP {target_status}")
+
+        state_after = await _probe_state(sandbox.probe_url(order_id), client)
+        count_after = (state_after or {}).get("fulfilled_count")
+        if count_after is None:
+            return VerificationOutcome(
+                status=VerificationStatus.INCONCLUSIVE.value, expected_behavior=SCENARIO_WI1_EXPECTED,
+                observed_behavior="State probe unreachable after delivery.",
+                webhook_deliveries=deliveries, state_probe_before=state_before,
+                error_code="PROBE_UNAVAILABLE", measured_impact_paise=None, attempts=total_attempts,
+            )
+        await emit("probe-after", f"fulfilled_count(after) = {count_after}")
+
+    increment = count_after - count_before
+    accepted_2xx = isinstance(target_status, int) and 200 <= target_status < 300
+    common = dict(expected_behavior=SCENARIO_WI1_EXPECTED, webhook_deliveries=deliveries,
+                  state_probe_before=state_before, state_probe_after=state_after, attempts=total_attempts)
+    if accepted_2xx and increment >= 1:
+        await emit("verdict", "VERIFIED — forged webhook accepted and fulfilled")
+        return VerificationOutcome(
+            status=VerificationStatus.VERIFIED.value,
+            observed_behavior=(
+                f"A forged webhook (invalid signature) returned HTTP {target_status} and raised "
+                f"fulfilled_count {count_before}→{count_after}. Goods were released without a real payment."
+            ),
+            proof_summary=(
+                f"WI-1 VERIFIED: handler accepted a forged signature (HTTP {target_status}) and fulfilled "
+                f"order {order_id}. Measured impact = one ₹{order_amount_paise // 100} order released for free."
+            ),
+            measured_impact_paise=order_amount_paise, **common,
+        )
+    if (isinstance(target_status, int) and target_status >= 400) or increment == 0:
+        await emit("verdict", "NOT_REPRODUCED — forged webhook rejected")
+        return VerificationOutcome(
+            status=VerificationStatus.NOT_REPRODUCED.value,
+            observed_behavior=(
+                f"The forged webhook was rejected (HTTP {target_status}); fulfilled_count unchanged "
+                f"({count_before}→{count_after}). Signature verification held."
+            ),
+            measured_impact_paise=None, **common,
+        )
+    await emit("verdict", "INCONCLUSIVE")
+    return VerificationOutcome(
+        status=VerificationStatus.INCONCLUSIVE.value,
+        observed_behavior=f"Ambiguous: HTTP {target_status}, Δ={increment}.",
+        error_code="AMBIGUOUS_RESPONSE", measured_impact_paise=None, **common,
+    )
+
+
+# ─── AC-1: rupees-as-paise denomination error ─────────────────────────────────
+
+
+async def _run_ac1_on_sandbox(gateway_url, sandbox, order_amount_paise, emit) -> VerificationOutcome:
+    intended_inr = order_amount_paise // 100      # 150000 paise → ₹1500
+    expected_paise = intended_inr * 100           # 150000
+    charge_url = f"{sandbox.base_url}{sandbox.manifest.charge_path or '/charge'}"
+    total_attempts = 0
+    async with httpx.AsyncClient() as client:
+        await emit("charge", f"POST /charge intended_amount_inr={intended_inr} (expect {expected_paise} paise)")
+        try:
+            charge_resp = await client.post(
+                charge_url, json={"intended_amount_inr": intended_inr}, timeout=GATEWAY_TIMEOUT_SECONDS
+            )
+            charge = charge_resp.json()
+        except Exception as exc:
+            # The target's own call to the gateway may have failed — is the gateway down?
+            try:
+                await gateway_request(client, "GET", f"{gateway_url}/v1/orders/_probe_", headers=_DUMMY_AUTH)
+            except GatewayUnavailable as gu:
+                return _gateway_error(SCENARIO_AC1_EXPECTED, gu, stage="charge")
+            return VerificationOutcome(
+                status=VerificationStatus.INCONCLUSIVE.value, expected_behavior=SCENARIO_AC1_EXPECTED,
+                observed_behavior=f"Target /charge did not respond cleanly: {exc}",
+                error_code="TARGET_ERROR", measured_impact_paise=None, attempts=total_attempts,
+            )
+
+        order_id = charge.get("order_id")
+        if not order_id:
+            try:
+                await gateway_request(client, "GET", f"{gateway_url}/v1/orders/_probe_", headers=_DUMMY_AUTH)
+            except GatewayUnavailable as gu:
+                return _gateway_error(SCENARIO_AC1_EXPECTED, gu, stage="charge")
+            return VerificationOutcome(
+                status=VerificationStatus.INCONCLUSIVE.value, expected_behavior=SCENARIO_AC1_EXPECTED,
+                observed_behavior=f"Target /charge returned no order_id: {charge}",
+                error_code="NO_ORDER_ID", measured_impact_paise=None, attempts=total_attempts,
+            )
+
+        try:
+            order_resp = await gateway_request(
+                client, "GET", f"{gateway_url}/v1/orders/{order_id}", headers=_DUMMY_AUTH
+            )
+        except GatewayUnavailable as gu:
+            return _gateway_error(SCENARIO_AC1_EXPECTED, gu, stage="read-order")
+        total_attempts += len(order_resp.__dict__.get("_pg_attempts", []))
+        order = _safe_json(order_resp)
+        actual = order.get("amount")
+        await emit("order-amount", f"order {order_id} created with amount = {actual} paise")
+
+    if not isinstance(actual, int):
+        return VerificationOutcome(
+            status=VerificationStatus.INCONCLUSIVE.value, expected_behavior=SCENARIO_AC1_EXPECTED,
+            observed_behavior=f"Could not read the created order amount: {order}",
+            error_code="NO_AMOUNT", measured_impact_paise=None, attempts=total_attempts,
+        )
+
+    common = dict(expected_behavior=SCENARIO_AC1_EXPECTED, attempts=total_attempts)
+    if actual != expected_paise:
+        discrepancy = abs(expected_paise - actual)
+        await emit("verdict", f"VERIFIED — amount {actual} ≠ expected {expected_paise} paise")
+        return VerificationOutcome(
+            status=VerificationStatus.VERIFIED.value,
+            observed_behavior=(
+                f"Charging ₹{intended_inr} created an order for {actual} paise, not {expected_paise}. "
+                f"The merchant charges ₹{actual / 100:.2f} instead of ₹{intended_inr:.2f} — a "
+                "rupee/paise denomination error."
+            ),
+            proof_summary=(
+                f"AC-1 VERIFIED: order {order_id} amount={actual} paise, expected {expected_paise} "
+                f"(₹{intended_inr}×100). Measured discrepancy = {discrepancy} paise."
+            ),
+            measured_impact_paise=discrepancy, **common,
+        )
+    await emit("verdict", "NOT_REPRODUCED — amount correct")
+    return VerificationOutcome(
+        status=VerificationStatus.NOT_REPRODUCED.value,
+        observed_behavior=f"Order created with the correct amount ({actual} paise = ₹{intended_inr}).",
+        measured_impact_paise=None, **common,
     )
