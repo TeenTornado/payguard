@@ -1,0 +1,5 @@
+# Relative cost of a mistake, used to weight eval FP-cost / FN-cost.
+# A false positive wastes a human review; a false negative ships a real money bug.
+# Defaults are illustrative — tune per the brief's cost model, never on the test split.
+false_positive_cost: 1.0
+false_negative_cost: 5.0

@@ -22,8 +22,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="PayGuard evaluation runner")
     parser.add_argument("--split", choices=["train", "val", "test"], default="val")
     parser.add_argument(
-        "--system", choices=["A", "B", "C", "D"], default="A",
-        help="A=static, B=LLM-only, C=static+LLM, D=C+verifier"
+        "--system", choices=["A", "B", "C", "D", "C+RAG"], default="A",
+        help="A=static, B=LLM-only, C=static+LLM, C+RAG=static+grounded-LLM, D=C+verifier"
     )
     parser.add_argument("--tau", type=float, default=0.45)
     parser.add_argument("--max-samples", type=int, default=None)
