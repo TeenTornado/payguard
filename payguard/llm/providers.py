@@ -305,6 +305,15 @@ def build_analyzer_provider() -> OpenAICompatProvider | AnthropicProvider | None
             rpm=fb_rpm, tpm=fb_tpm, max_tokens=8192,
             max_retries=OPENROUTER_MAX_RETRIES,
         )
+
+    # Always-on local fallback: Ollama. Keeps the analyzer AVAILABLE offline (no key) so
+    # the console never shows "unavailable" just because a hosted key is absent. If Ollama
+    # isn't actually running, the call fails at analysis time and the scan degrades to
+    # static-only — never a silent gap.
+    ollama = load_provider(profile="ollama", max_retries=1)
+    if ollama is not None:
+        logger.info("Analyzer falling through to local Ollama (%s)", ollama.model)
+        return ollama
     return None
 
 

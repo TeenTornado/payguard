@@ -1,5 +1,5 @@
 .PHONY: setup up down migrate test lint typecheck dataset eval-dev eval eval-smoke \
-        audit-verify demo chaos seed-examples clean
+        audit-verify demo chaos seed-examples llm-doctor clean
 
 PYTHON := .venv/bin/python
 UV := uv
@@ -78,6 +78,9 @@ demo:
 chaos:
 	@echo "Usage: make chaos ARGS='--llm on --gateway off'  |  make chaos ARGS='--off'"
 	$(PYTHON) -m payguard.shared.chaos $(ARGS)
+
+llm-doctor:
+	$(PYTHON) -m payguard.cli llm doctor
 
 seed-examples:
 	$(PYTHON) -m payguard.dataset.seed_examples
