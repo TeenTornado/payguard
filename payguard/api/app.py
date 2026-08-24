@@ -565,11 +565,33 @@ async def get_finding(finding_id: str, db: AsyncSession = Depends(get_db)) -> di
         for r in rem_result.all()
     ]
 
+    # Grounding (recomputed deterministically): when the grounded analyzer is enabled and this
+    # is an LLM-sourced finding, show the cited rule + retrieved labeled examples it was grounded
+    # on. Retrieval is deterministic, so these match what the analyzer saw.
+    grounding = None
+    try:
+        from payguard.llm.grounded import is_grounded, retrieve_for_unit
+        if is_grounded() and finding.detector_source in ("LLM", "BOTH") and code_context:
+            code = "\n".join(code_context.get("lines", []))
+            refs = retrieve_for_unit(code).get(finding.defect_class, [])
+            cited = next((r for r in refs if r.get("tier") == "RULE"), None)
+            grounding = {
+                "analyzer": "grounded",
+                "cited_rule": ({"id": cited["id"], "title": cited.get("title"),
+                                "text": cited["text"]} if cited else None),
+                "references": [{"id": r["id"], "kind": r["kind"], "tier": r["tier"],
+                                "sample_id": r.get("sample_id"), "hard_negative": r.get("hard_negative")}
+                               for r in refs],
+            }
+    except Exception:
+        grounding = None
+
     return {
         "id": finding.id,
         "scan_id": finding.scan_id,
         "repository_id": finding.repository_id,
         "title": title_for(finding.rule_ids, finding.defect_class),
+        "grounding": grounding,
         "defect_class": finding.defect_class,
         "scenario_ids": finding.scenario_ids,
         "severity": finding.severity,
@@ -961,6 +983,20 @@ async def eval_latest() -> dict | None:
         return None
     try:
         return json.loads(json_files[0].read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+# ── GET /eval/compare ─────────────────────────────────────────────────────────
+
+
+@app.get("/eval/compare")
+async def eval_compare() -> dict | None:
+    """Side-by-side of the frozen test-split systems (A/B/C/C+RAG) with the C-vs-C+RAG delta."""
+    try:
+        from payguard.eval.compare import compare
+        result = compare()
+        return result if result.get("summaries") else None
     except Exception:
         return None
 

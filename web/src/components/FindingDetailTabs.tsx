@@ -158,6 +158,42 @@ function AIReasoningTab({ finding }: { finding: Finding }) {
           : 'AI finding — unverified. The LLM proposes; the verifier decides. Do not act on this alone.'}
       </div>
 
+      {finding.grounding && (
+        <div style={{ border: '1px solid #E5E7EB', borderRadius: 6, padding: '12px 14px', background: '#F9FAFB' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+            Grounded on retrieved Razorpay knowledge
+          </div>
+          {finding.grounding.cited_rule && (
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#1D4ED8', fontWeight: 600 }}>
+                {finding.grounding.cited_rule.id}
+              </span>
+              <span style={{ fontSize: 13, color: '#374151', marginLeft: 6 }}>
+                {finding.grounding.cited_rule.title}
+              </span>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, lineHeight: 1.5 }}>
+                {finding.grounding.cited_rule.text.slice(0, 280)}
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>
+            Retrieved labeled examples
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {finding.grounding.references
+              .filter((r) => r.tier === 'EXAMPLE')
+              .slice(0, 4)
+              .map((r) => (
+                <div key={r.id} style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#6B7280' }}>
+                  <span style={{ color: r.kind === 'SAFE_PATTERN' ? '#067647' : '#B42318' }}>{r.kind}</span>
+                  {' · '}{r.sample_id}
+                  {r.hard_negative && <span style={{ color: '#B54708' }}> · hard-negative</span>}
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {finding.llm_reasoning ? (
         <div
           style={{

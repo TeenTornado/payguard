@@ -122,6 +122,20 @@ export interface FindingListItem {
   created_at: string
 }
 
+export interface GroundingRef {
+  id: string
+  kind: string
+  tier: string
+  sample_id?: string | null
+  hard_negative?: boolean
+}
+
+export interface Grounding {
+  analyzer: string
+  cited_rule: { id: string; title?: string | null; text: string } | null
+  references: GroundingRef[]
+}
+
 export interface Finding extends FindingListItem {
   llm_reasoning: string | null
   static_confidence: number | null
@@ -130,6 +144,33 @@ export interface Finding extends FindingListItem {
   code_context: CodeContext | null
   verification_results: VerificationResult[]
   remediations: Remediation[]
+  grounding?: Grounding | null
+}
+
+export interface EvalSystemSummary {
+  system: string
+  n_samples: number
+  provider_model: string | null
+  macro: { p?: number; r?: number; f1?: number }
+  total_fp: number
+  per_class: Record<string, { tp?: number; fp?: number; fn?: number; p?: number; r?: number; f1?: number }>
+}
+
+export interface EvalCompare {
+  summaries: Record<string, EvalSystemSummary>
+  c_vs_crag: {
+    fp_before: number
+    fp_after: number
+    fp_cost_before: number
+    fp_cost_after: number
+    precision_before: number | null
+    precision_after: number | null
+    recall_before: number | null
+    recall_after: number | null
+    f1_before: number | null
+    f1_after: number | null
+    fp_cost_weight: number
+  } | null
 }
 
 export interface FindingsResponse {

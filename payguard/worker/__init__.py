@@ -161,13 +161,21 @@ async def _run_scan(scan_id: str, repo_path: str, session_factory) -> None:
         log.warning("LLM chaos active — skipping LLM analysis for scan %s (static-only)", scan_id)
         llm_failed = True
     else:
+        from payguard.llm.grounded import is_grounded
+        grounded = is_grounded()
+        if grounded:
+            from payguard.llm.grounded import retrieve_for_unit
+            from payguard.llm.prompts import build_grounded_analysis_prompt
         for unit in units:
             try:
-                analysis, _cache_hit = analyze(
-                    SYSTEM_PROMPT,
-                    build_analysis_prompt(unit),
-                    sample_id=f"{scan_id}:{unit.file}:{unit.symbol}",
-                )
+                if grounded:
+                    refs = retrieve_for_unit(unit.source)
+                    user_prompt = build_grounded_analysis_prompt(unit, refs)
+                    sid = f"grounded:{scan_id}:{unit.file}:{unit.symbol}"
+                else:
+                    user_prompt = build_analysis_prompt(unit)
+                    sid = f"{scan_id}:{unit.file}:{unit.symbol}"
+                analysis, _cache_hit = analyze(SYSTEM_PROMPT, user_prompt, sample_id=sid)
                 for f in analysis.findings:
                     all_llm_findings.append((unit.file, f))
             except Exception as exc:

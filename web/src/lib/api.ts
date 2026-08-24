@@ -8,6 +8,7 @@ import type {
   AuditLogResponse,
   AuditVerifyResponse,
   EvalReport,
+  EvalCompare,
   SystemStatus,
   Settings,
   VerificationResult,
@@ -167,6 +168,10 @@ export function verifyAuditChain(): Promise<AuditVerifyResponse> {
 
 export function getLatestEval(): Promise<EvalReport | null> {
   return apiFetch<EvalReport | null>('/eval/latest')
+}
+
+export function getEvalCompare(): Promise<EvalCompare | null> {
+  return apiFetch<EvalCompare | null>('/eval/compare')
 }
 
 // ---- System ----

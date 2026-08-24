@@ -1,18 +1,62 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getLatestEval } from '@/lib/api'
+import { getLatestEval, getEvalCompare } from '@/lib/api'
 import { formatPct, formatDate } from '@/lib/format'
-import type { EvalReport } from '@/lib/types'
+import type { EvalReport, EvalCompare } from '@/lib/types'
+
+const pct = (x?: number | null) => (x == null ? '—' : `${(x * 100).toFixed(1)}%`)
+
+function ComparePanel({ cmp }: { cmp: EvalCompare }) {
+  const d = cmp.c_vs_crag
+  const systems = ['A', 'B', 'C', 'C+RAG'].filter((s) => cmp.summaries[s])
+  return (
+    <div className="panel" style={{ padding: '18px 22px', marginBottom: 20 }}>
+      <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 4 }}>
+        Frozen test split — systems compared
+      </div>
+      <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 14 }}>
+        C = static ∪ LLM · C+RAG = static ∪ grounded (retrieval-augmented) LLM. Same frozen split.
+      </div>
+      <table>
+        <thead>
+          <tr><th>System</th><th>Macro P</th><th>Macro R</th><th>Macro F1</th><th>Total FP</th></tr>
+        </thead>
+        <tbody>
+          {systems.map((s) => {
+            const m = cmp.summaries[s]
+            return (
+              <tr key={s}>
+                <td style={{ fontWeight: 600 }}>{s}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{pct(m.macro.p)}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{pct(m.macro.r)}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{pct(m.macro.f1)}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{m.total_fp}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {d && (
+        <div style={{ marginTop: 14, padding: '12px 14px', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 13, color: '#374151' }}>
+          <strong>C → C+RAG:</strong>{' '}
+          false positives {d.fp_before} → {d.fp_after} · FP-cost (w={d.fp_cost_weight}) {d.fp_cost_before} → {d.fp_cost_after} ·
+          precision {pct(d.precision_before)} → {pct(d.precision_after)} · recall {pct(d.recall_before)} → {pct(d.recall_after)}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function EvaluationPage() {
   const [report, setReport] = useState<EvalReport | null>(null)
+  const [cmp, setCmp] = useState<EvalCompare | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getLatestEval()
-      .then((r) => { setReport(r); setLoading(false) })
+    Promise.all([getLatestEval().catch(() => null), getEvalCompare().catch(() => null)])
+      .then(([r, c]) => { setReport(r); setCmp(c); setLoading(false) })
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : 'Failed to load eval')
         setLoading(false)
@@ -44,6 +88,8 @@ export default function EvaluationPage() {
           {error}
         </div>
       )}
+
+      {cmp && <ComparePanel cmp={cmp} />}
 
       {!report && !error ? (
         <div className="panel" style={{ padding: '40px 32px' }}>
