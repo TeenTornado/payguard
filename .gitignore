@@ -22,3 +22,7 @@ node_modules/
 reports/
 *.log
 docker-compose.override.yml
+
+# web build artifacts
+web/tsconfig.tsbuildinfo
+web/next-env.d.ts

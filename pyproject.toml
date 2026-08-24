@@ -36,6 +36,7 @@ dependencies = [
     "click==8.1.8",
     "rich==13.9.4",
     "tenacity==9.0.0",
+    "razorpay==1.4.2",
 ]
 
 [project.optional-dependencies]
