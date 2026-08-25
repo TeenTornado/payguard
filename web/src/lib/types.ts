@@ -158,6 +158,10 @@ export interface EvalSystemSummary {
 
 export interface EvalCompare {
   summaries: Record<string, EvalSystemSummary>
+  runnable_avd: {
+    n: number
+    systems: Record<string, { macro: { p?: number; r?: number; f1?: number }; total_fp: number }>
+  } | null
   c_vs_crag: {
     fp_before: number
     fp_after: number

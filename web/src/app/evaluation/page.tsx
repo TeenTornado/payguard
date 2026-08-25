@@ -7,6 +7,42 @@ import type { EvalReport, EvalCompare } from '@/lib/types'
 
 const pct = (x?: number | null) => (x == null ? '—' : `${(x * 100).toFixed(1)}%`)
 
+function RunnablePanel({ cmp }: { cmp: EvalCompare }) {
+  const rav = cmp.runnable_avd
+  if (!rav) return null
+  const color = (s: string) => (s === 'D' ? '#067647' : '#374151')
+  return (
+    <div className="panel" style={{ padding: '18px 22px', marginBottom: 20 }}>
+      <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 4 }}>
+        The verifier restores precision — A / C / D on runnable targets (n={rav.n})
+      </div>
+      <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 14 }}>
+        D counts a class only if it reaches VERIFIED in the sandbox. The LLM widens the net (C
+        precision &lt; A); the verifier removes the false positives it can’t reproduce (D).
+      </div>
+      <table>
+        <thead>
+          <tr><th>System</th><th>Macro P</th><th>Macro R</th><th>Macro F1</th><th>Total FP</th></tr>
+        </thead>
+        <tbody>
+          {['A', 'C', 'D'].filter((s) => rav.systems[s]).map((s) => {
+            const m = rav.systems[s].macro
+            return (
+              <tr key={s}>
+                <td style={{ fontWeight: 600, color: color(s) }}>{s}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace', color: color(s) }}>{pct(m.p)}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{pct(m.r)}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace', color: color(s) }}>{pct(m.f1)}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace', color: color(s) }}>{rav.systems[s].total_fp}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function ComparePanel({ cmp }: { cmp: EvalCompare }) {
   const d = cmp.c_vs_crag
   const systems = ['A', 'B', 'C', 'C+RAG'].filter((s) => cmp.summaries[s])
@@ -89,6 +125,7 @@ export default function EvaluationPage() {
         </div>
       )}
 
+      {cmp && <RunnablePanel cmp={cmp} />}
       {cmp && <ComparePanel cmp={cmp} />}
 
       {!report && !error ? (
