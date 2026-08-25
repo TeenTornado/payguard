@@ -44,7 +44,7 @@ export interface ScanListItem {
   started_at: string
   finished_at: string | null
   n_findings: number
-  llm_status: 'OK' | 'DEGRADED' | 'FAILED' | null
+  llm_status: 'OK' | 'DEGRADED' | 'FAILED' | 'OFF' | null
   static_status: 'OK' | 'DEGRADED' | 'FAILED' | null
 }
 
@@ -61,6 +61,9 @@ export interface ScanStats {
 
 export interface Scan extends ScanListItem {
   stats_json: ScanStats | null
+  n_advisory?: number
+  n_verified?: number
+  n_exception?: number
 }
 
 export interface ScanSSEEvent {

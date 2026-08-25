@@ -78,7 +78,6 @@ export default function ScanDetailPage() {
   }
 
   const isDone = TERMINAL.includes(scan.state)
-  const stats = scan.stats_json ?? {}
 
   return (
     <div>
@@ -119,9 +118,9 @@ export default function ScanDetailPage() {
       {/* KPI cards */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <KpiCard label="Findings" value={scan.n_findings ?? 0} />
-        <KpiCard label="Advisory" value={stats.n_advisory ?? 0} accent="#344054" />
-        <KpiCard label="Verified" value={stats.n_verified ?? 0} accent="#067647" />
-        <KpiCard label="Dismissed" value={stats.n_dismissed ?? 0} />
+        <KpiCard label="Advisory" value={scan.n_advisory ?? 0} accent="#344054" />
+        <KpiCard label="Verified" value={scan.n_verified ?? 0} accent="#067647" />
+        <KpiCard label="Exceptions" value={scan.n_exception ?? 0} accent="#B54708" />
         <KpiCard
           label="Duration"
           value={formatDuration(scan.started_at, scan.finished_at)}
