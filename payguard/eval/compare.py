@@ -57,6 +57,22 @@ def summarize(report: dict) -> dict:
     }
 
 
+def runnable_avd() -> dict | None:
+    """System A/C/D on the runnable target set (from verify_eval) — the verifier's precision
+    restoration. Separate from the frozen Flask test split (which has no runnable samples)."""
+    p = TEST_DIR / "D_runnable.json"
+    if not p.exists():
+        return None
+    d = json.loads(p.read_text(encoding="utf-8"))
+    sysd = d.get("systems", {})
+    return {
+        "n": d.get("n"),
+        "systems": {s: {"macro": _prf(sysd.get(s, {}).get("macro", {})),
+                        "total_fp": sysd.get(s, {}).get("total_fp")}
+                    for s in ("A", "C", "D") if s in sysd},
+    }
+
+
 def compare(systems: list[str] | None = None) -> dict:
     systems = systems or ["A", "B", "C", "C+RAG"]
     reports = {s: latest_report(s) for s in systems}
@@ -74,7 +90,7 @@ def compare(systems: list[str] | None = None) -> dict:
             "f1_before": c["macro"].get("f1"), "f1_after": rag["macro"].get("f1"),
             "fp_cost_weight": w,
         }
-    return {"summaries": summaries, "c_vs_crag": delta}
+    return {"summaries": summaries, "c_vs_crag": delta, "runnable_avd": runnable_avd()}
 
 
 def _fmt(x, nd=3):
@@ -88,6 +104,16 @@ def print_table(cmp: dict) -> None:
         m = sm["macro"]
         print(f"{s:8} {str(sm['provider_model'])[:16]:16} "
               f"{_fmt(m.get('p')):>7} {_fmt(m.get('r')):>7} {_fmt(m.get('f1')):>8} {sm['total_fp']:>8}")
+    rav = cmp.get("runnable_avd")
+    if rav:
+        print(f"\n=== Runnable targets (n={rav['n']}): the verifier restores precision (A/C/D) ===")
+        print(f"{'System':8} {'macroP':>8} {'macroR':>8} {'macroF1':>8} {'totalFP':>8}")
+        for s in ("A", "C", "D"):
+            if s in rav["systems"]:
+                m = rav["systems"][s]["macro"]
+                print(f"{s:8} {_fmt(m.get('p')):>8} {_fmt(m.get('r')):>8} {_fmt(m.get('f1')):>8} "
+                      f"{rav['systems'][s]['total_fp']:>8}")
+
     d = cmp.get("c_vs_crag")
     if d:
         print("\n--- C vs C+RAG ---")

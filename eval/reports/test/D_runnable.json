@@ -1,0 +1,206 @@
+{
+  "eval_set": "runnable_targets",
+  "n": 7,
+  "systems": {
+    "A": {
+      "per_class": {
+        "DUPLICATE_PAYMENT": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WEBHOOK_INTEGRITY": {
+          "tp": 2,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6667
+        },
+        "AMOUNT_CURRENCY": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "macro": {
+        "precision": 0.8333,
+        "recall": 1.0,
+        "f1": 0.8889
+      },
+      "total_fp": 2
+    },
+    "C": {
+      "per_class": {
+        "DUPLICATE_PAYMENT": {
+          "tp": 3,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.75,
+          "recall": 1.0,
+          "f1": 0.8571
+        },
+        "WEBHOOK_INTEGRITY": {
+          "tp": 2,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6667
+        },
+        "AMOUNT_CURRENCY": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "macro": {
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8413
+      },
+      "total_fp": 3
+    },
+    "D": {
+      "per_class": {
+        "DUPLICATE_PAYMENT": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WEBHOOK_INTEGRITY": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "AMOUNT_CURRENCY": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "macro": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "total_fp": 0
+    }
+  },
+  "rows": [
+    {
+      "target": "dup-fulfillment-node",
+      "true": [
+        "DUPLICATE_PAYMENT"
+      ],
+      "A": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "C": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "D": [
+        "DUPLICATE_PAYMENT"
+      ]
+    },
+    {
+      "target": "webhook-forgeable-node",
+      "true": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "A": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "C": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "D": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ]
+    },
+    {
+      "target": "amount-mismatch-node",
+      "true": [
+        "AMOUNT_CURRENCY"
+      ],
+      "A": [
+        "AMOUNT_CURRENCY"
+      ],
+      "C": [
+        "AMOUNT_CURRENCY"
+      ],
+      "D": [
+        "AMOUNT_CURRENCY"
+      ]
+    },
+    {
+      "target": "injection-probe",
+      "true": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "A": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "C": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "D": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ]
+    },
+    {
+      "target": "dup-fulfillment-node-safe",
+      "true": [],
+      "A": [
+        "WEBHOOK_INTEGRITY"
+      ],
+      "C": [
+        "DUPLICATE_PAYMENT",
+        "WEBHOOK_INTEGRITY"
+      ],
+      "D": []
+    },
+    {
+      "target": "webhook-forgeable-node-safe",
+      "true": [],
+      "A": [],
+      "C": [],
+      "D": []
+    },
+    {
+      "target": "amount-mismatch-node-safe",
+      "true": [],
+      "A": [],
+      "C": [],
+      "D": []
+    }
+  ]
+}
