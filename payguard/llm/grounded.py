@@ -20,6 +20,12 @@ def analyzer_mode() -> str:
 def is_grounded() -> bool:
     return analyzer_mode() == "grounded"
 
+
+def llm_enabled() -> bool:
+    """False when PAYGUARD_LLM=off — run static + verifier only (the honest default when the
+    available LLM doesn't add static-blind coverage; see docs/evaluation.md)."""
+    return os.environ.get("PAYGUARD_LLM", "").strip().lower() not in ("off", "0", "false", "no")
+
 GROUNDED_CLASSES = [
     DefectClass.DUPLICATE_PAYMENT.value,
     DefectClass.WEBHOOK_INTEGRITY.value,

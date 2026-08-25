@@ -155,9 +155,14 @@ async def _run_scan(scan_id: str, repo_path: str, session_factory) -> None:
 
     all_llm_findings: list[tuple[str, LLMFinding]] = []  # (unit.file, finding)
     llm_failed = False
+    llm_off = False
     chaos = read_chaos().llm
 
-    if chaos:
+    from payguard.llm.grounded import llm_enabled
+    if not llm_enabled():
+        log.info("PAYGUARD_LLM=off — static + verifier only for scan %s", scan_id)
+        llm_off = True
+    elif chaos:
         log.warning("LLM chaos active — skipping LLM analysis for scan %s (static-only)", scan_id)
         llm_failed = True
     else:
@@ -185,7 +190,10 @@ async def _run_scan(scan_id: str, repo_path: str, session_factory) -> None:
     async with session_factory() as session:
         async with session.begin():
             scan = await session.scalar(select(Scan).where(Scan.id == scan_id))
-            if llm_failed and not all_llm_findings:
+            if llm_off:
+                scan.llm_status = "OFF"
+                event_kind = AuditEventKind.LLM_ANALYSIS_COMPLETED
+            elif llm_failed and not all_llm_findings:
                 scan.llm_status = LLMStatus.FAILED
                 event_kind = AuditEventKind.LLM_ANALYSIS_DEGRADED
             elif llm_failed:
