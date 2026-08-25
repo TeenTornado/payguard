@@ -1,6 +1,27 @@
 # PROGRESS.md
 
-Last updated: 2026-08-24 (session 4)
+Last updated: 2026-08-25 (session 5)
+
+## System D + static-blind — the architecture, measured (Aug 25, session 5)
+
+The row that vindicates the design. On the **runnable target set** (examples/targets/, n=7 — the
+frozen Flask test split is 0/11 runnable, so D is measured where the sandbox can execute):
+
+| System | macro P | macro R | macro F1 | total FP |
+|--------|--------:|--------:|---------:|---------:|
+| A (static)       | 0.833 | 1.000 | 0.889 | 2 |
+| C (static ∪ LLM) | 0.750 | 1.000 | 0.841 | 3 |
+| **D (verified)** | **1.000** | **1.000** | **1.000** | **0** |
+
+- **Static-blind coverage (why the LLM is in the product):** on the static-blind positives
+  (static_detectable=false, n=10 corpus-wide), A recall 0.400 → C recall 0.800 — the LLM doubles
+  recall on defects the rules can't detect.
+- **Precision cost + fix:** the LLM drops precision (C 0.75); **the verifier (D) restores it to 1.0,
+  FP 3→0, recall unchanged** — the reason an LLM finding is never shipped VERIFIED (ADR-001).
+- `PAYGUARD_LLM=off` added (static+verifier only) as an option; `python -m payguard.eval.verify_eval`
+  runs A/C/D; the Evaluation page shows both A/C/D and the C-vs-C+RAG negative. 116 tests green.
+
+Below it, the RAG result stands as a deliberate measured negative (C+RAG ≡ C).
 
 ## Grounded (retrieval-augmented) analyzer — measured (Aug 24, session 4)
 

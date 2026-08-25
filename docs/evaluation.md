@@ -151,3 +151,55 @@ hosted analyzer (the harness already supports it — set the hosted key), and on
 (≥240 samples, which needs a Groq generation key). n=11 is small; a single FP swings a per-class
 precision. This is a real baseline and a real negative result, not a tuned one — nothing was
 tuned on the test split.
+
+## HEADLINE — System D (verifier) restores the precision the LLM costs
+
+**Runnable target set** (`examples/targets/`, n=7 — the executable targets where the sandbox can
+run; the frozen Flask test split is 0/11 runnable, so System D is measured here). System D counts
+a class as predicted-positive ONLY if a finding of that class reaches **VERIFIED** in the sandbox
+(per the brief). Ground-truth labels are each target's actual, sandbox-confirmable defects; safe
+controls have every guard present. Run: `PAYGUARD_OLLAMA_FALLBACK=1 python -m payguard.eval.verify_eval`.
+
+| System | macro P | macro R | macro F1 | total FP |
+|--------|--------:|--------:|---------:|---------:|
+| A (static)        | 0.833 | 1.000 | 0.889 | 2 |
+| C (static ∪ LLM)  | 0.750 | 1.000 | 0.841 | 3 |
+| **D (verified)**  | **1.000** | **1.000** | **1.000** | **0** |
+
+**The LLM widens the net and drops precision to 0.75 (it adds a false WEBHOOK_INTEGRITY on the
+signature-verifying dup target and a false DUPLICATE_PAYMENT on the safe control — 3 FPs total).
+The verifier restores precision to 1.0 by demanding sandbox proof: it removes every one of those 3
+false positives (each resolves NOT_REPRODUCED) while keeping every true defect (recall stays 1.0).
+This is the core reason PayGuard never ships an LLM finding as VERIFIED** (ADR-001).
+
+Per-target (from `eval/reports/test/D_runnable.json`):
+- `dup-fulfillment-node` — A/C say {DP, **WI**}; **D → {DP}** (the forged-webhook scenario is
+  rejected → the WI hypothesis is NOT_REPRODUCED and dropped).
+- `dup-fulfillment-node-safe` (SAFE) — C says {**DP**, **WI**}; **D → {}** (both hypotheses fail
+  to reproduce in the sandbox).
+- vulnerable targets — D confirms every real defect (DP/WI/AC all VERIFIED).
+
+### Does the LLM earn its place? Yes — static-blind coverage (with the numbers)
+
+The LLM's justification for the precision cost is catching semantic defects the static rules
+**cannot** — the `static_detectable=false` positives (wrong-field dedup, cross-module amount,
+dedup in an imported util, a call-chain fulfillment). Recall on that subset:
+
+| Subset | A (static) recall | C (static ∪ LLM) recall |
+|--------|------------------:|------------------------:|
+| static-blind positives, whole labeled corpus (n=10) | **0.400** (4/10) | **0.800** (8/10) |
+| static-blind positives, frozen test split (n=1)     | 1.000 (1/1) | 1.000 (1/1) |
+
+On the corpus-wide static-blind set the LLM **doubles** recall (0.40 → 0.80): it finds defects the
+rules miss. (The frozen test split contains only 1 static-blind positive — too few to conclude
+from — so the n=10 number is the meaningful one; neither is tuned on test.)
+
+The full architecture then reads end to end, each step measured:
+1. **Static** handles the obvious, precisely (A macro P=0.83 runnable / 0.889 frozen split).
+2. **The LLM adds coverage** on defects rules can't detect (static-blind recall 0.40 → 0.80)…
+3. …**at a precision cost** (C 0.75 runnable / 0.485 frozen split — it over-flags).
+4. **The verifier restores precision** to 1.0 by demanding sandbox proof (D: FP 3 → 0, recall
+   unchanged) — why an LLM finding is never shipped as VERIFIED (ADR-001).
+
+The LLM earns its place, and the verifier is what makes it *safe* to include. `PAYGUARD_LLM=off`
+is offered for static-only runs (determinism/speed), not because the LLM fails to help — it does.
