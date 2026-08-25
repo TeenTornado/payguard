@@ -35,7 +35,7 @@ EVAL_CLASSES = [
     DefectClass.AMOUNT_CURRENCY.value,
 ]
 
-System = Literal["A", "B", "C", "D"]
+System = Literal["A", "B", "C", "D", "C+RAG"]
 
 
 # ─── Metrics ──────────────────────────────────────────────────────────────────
@@ -177,21 +177,33 @@ def _llm_predictions(
     tau: float,
     sample_id: str,
     provider,
+    grounded: bool = False,
 ) -> tuple[dict[str, bool], int, int]:
-    """Returns (predictions, n_cache_hits, n_api_calls)."""
+    """Returns (predictions, n_cache_hits, n_api_calls). grounded=True uses retrieval."""
     from payguard.llm.adapter import analyze
-    from payguard.llm.prompts import SYSTEM_PROMPT, build_analysis_prompt
+    from payguard.llm.prompts import (
+        SYSTEM_PROMPT,
+        build_analysis_prompt,
+        build_grounded_analysis_prompt,
+    )
 
     preds: dict[str, bool] = {c: False for c in EVAL_CLASSES}
     cache_hits = api_calls = 0
 
     for unit in units:
-        user_prompt = build_analysis_prompt(unit)
+        if grounded:
+            from payguard.llm.grounded import retrieve_for_unit
+            refs = retrieve_for_unit(unit.source)
+            user_prompt = build_grounded_analysis_prompt(unit, refs)
+            cache_key = f"grounded:{sample_id}"
+        else:
+            user_prompt = build_analysis_prompt(unit)
+            cache_key = sample_id
         analysis, hit = analyze(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
             provider=provider,
-            sample_id=sample_id,
+            sample_id=cache_key,
         )
         if hit:
             cache_hits += 1
@@ -221,7 +233,7 @@ def evaluate_system(
 
     # Resolve provider for systems that need LLM
     provider = None
-    if system in ("B", "C", "D"):
+    if system in ("B", "C", "D", "C+RAG"):
         if llm_provider is not None:
             provider = llm_provider
         else:
@@ -251,10 +263,12 @@ def evaluate_system(
                 preds, ch, ac = _llm_predictions(units, tau, sample.sample_id, provider)
                 result.llm_cache_hits += ch
                 result.llm_api_calls += ac
-            elif system in ("C", "D"):
-                # C = static ∪ LLM
+            elif system in ("C", "D", "C+RAG"):
+                # C = static ∪ LLM; C+RAG = static ∪ grounded (retrieval-augmented) LLM
                 static_preds = _static_predictions(units, tau)
-                llm_preds, ch, ac = _llm_predictions(units, tau, sample.sample_id, provider)
+                llm_preds, ch, ac = _llm_predictions(
+                    units, tau, sample.sample_id, provider, grounded=(system == "C+RAG")
+                )
                 result.llm_cache_hits += ch
                 result.llm_api_calls += ac
                 preds = {c: (static_preds.get(c, False) or llm_preds.get(c, False))

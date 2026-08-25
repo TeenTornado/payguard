@@ -1,5 +1,5 @@
 .PHONY: setup up down migrate test lint typecheck dataset eval-dev eval eval-smoke \
-        audit-verify demo chaos seed-examples clean
+        audit-verify demo demo-docker chaos seed-examples llm-doctor clean
 
 PYTHON := .venv/bin/python
 UV := uv
@@ -56,8 +56,14 @@ eval-dev-all:
 	$(PYTHON) -m payguard.eval.run --split val --system C
 
 eval:
-	@echo "Running evaluation on TEST split — appending to eval/reports/test/eval_ledger.jsonl"
-	$(PYTHON) -m payguard.eval.run --split test
+	@echo "Running A/B/C/C+RAG evaluation on the frozen TEST split — appending to eval/reports/test/eval_ledger.jsonl"
+	@echo "  (B/C/C+RAG use the hosted analyzer if a key is set, else the local Ollama analyzer)"
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system A
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system B
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system C
+	PAYGUARD_OLLAMA_FALLBACK=1 $(PYTHON) -m payguard.eval.run --split test --system C+RAG
+	@echo ""
+	$(PYTHON) -m payguard.eval.compare
 
 eval-smoke:
 	@echo "Running smoke eval (5 samples)..."
@@ -67,16 +73,27 @@ llm-doctor:
 	@echo "Probing configured LLM profiles..."
 	$(PYTHON) -m payguard.cli llm doctor
 
+kb-index:
+	@echo "Building the grounding KB index (RULE facts + TRAIN examples only)…"
+	$(PYTHON) -m payguard.detector.retrieval
+
 audit-verify:
 	$(PYTHON) -m payguard.shared.audit_verify
 
+# Local, Docker-free demo: starts gateway/api/worker/web (subprocess sandbox) and seeds
+# one clean VERIFIED scan. Requires Postgres running locally.
 demo:
+	bash scripts/dev-up.sh
+
+# Docker variant (when the daemon is available): full isolation via compose.
+demo-docker:
 	PAYGUARD_DEMO=1 GATEWAY_MODE=EMULATE docker compose up -d --build
 	$(PYTHON) -m payguard.demo.seed
 	@echo "Demo running. Visit http://localhost:3000"
 
 chaos:
-	$(PYTHON) -m payguard.gateway.chaos_toggle
+	@echo "Usage: make chaos ARGS='--llm on --gateway off'  |  make chaos ARGS='--off'"
+	$(PYTHON) -m payguard.shared.chaos $(ARGS)
 
 seed-examples:
 	$(PYTHON) -m payguard.dataset.seed_examples

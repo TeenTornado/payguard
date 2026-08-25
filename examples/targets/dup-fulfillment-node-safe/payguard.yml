@@ -1,0 +1,33 @@
+# Safe control target — same manifest as dup-fulfillment-node; the app dedups on
+# the webhook event id so DP-2 verification returns NOT_REPRODUCED.
+name: dup-fulfillment-node-safe
+defect_class: DUPLICATE_PAYMENT
+scenario: DP-2
+
+runtime: node20
+install: npm install --no-audit --no-fund
+start: node app.js
+port_env: PORT
+health: GET /health
+
+charge_endpoint:
+  method: POST
+  path: /charge
+  request_template:
+    intended_amount_inr: 1500
+
+webhook_endpoint:
+  method: POST
+  path: /webhook
+
+state_probe:
+  method: GET
+  path: /state
+  query: order_id
+  json_path: fulfilled_count
+
+env_map:
+  key_id: RAZORPAY_KEY_ID
+  key_secret: RAZORPAY_KEY_SECRET
+  webhook_secret: RAZORPAY_WEBHOOK_SECRET
+  base_url: RAZORPAY_BASE_URL

@@ -298,7 +298,7 @@ class TestSystemNaming:
         from payguard.eval.runner import evaluate_system
         with patch.dict(os.environ, {
             "PAYGUARD_LLM_API_KEY": "", "ANTHROPIC_API_KEY": "",
-            "PAYGUARD_FALLBACK_API_KEY": "",
+            "PAYGUARD_FALLBACK_API_KEY": "", "PAYGUARD_OLLAMA_FALLBACK": "",
         }):
             result = evaluate_system([], "val", system="B")
         assert result.llm_status == "UNAVAILABLE"
@@ -307,7 +307,7 @@ class TestSystemNaming:
         from payguard.eval.runner import evaluate_system
         with patch.dict(os.environ, {
             "PAYGUARD_LLM_API_KEY": "", "ANTHROPIC_API_KEY": "",
-            "PAYGUARD_FALLBACK_API_KEY": "",
+            "PAYGUARD_FALLBACK_API_KEY": "", "PAYGUARD_OLLAMA_FALLBACK": "",
         }):
             result = evaluate_system([], "val", system="C")
         assert result.llm_status == "UNAVAILABLE"

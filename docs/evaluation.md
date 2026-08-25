@@ -88,3 +88,118 @@ Re-run after quota resets; compare partial-vs-full run totals.
 **OpenRouter caveat:** `:free` model variants on OpenRouter can be delisted without notice.
 Eval runs that depend on specific model versions may silently route to a different model.
 Always use provider-direct keys (Gemini, Groq) for reproducible eval runs.
+
+## Frozen test-split results — 2026-08-24 (A/B/C, n=11)
+
+First real evaluation on the frozen test split (`dataset/splits/test.manifest.json`, 11 samples).
+Analyzer: local **Ollama `qwen2.5:7b`** (no hosted key configured; `PAYGUARD_OLLAMA_FALLBACK=1`).
+Reports: `eval/reports/test/{A,B,C}_test_n11_*.json`; ledger appended.
+
+| System | Macro P | Macro R | Macro F1 | Per-class notes |
+|--------|--------:|--------:|---------:|-----------------|
+| A (static rules)   | 0.889 | 1.000 | 0.941 | DP 1.0 / WI 0.80 (1 FP) / AC 1.0 |
+| B (LLM only)       | 0.485 | 0.778 | 0.597 | DP R=0.33 (2 FN); **WI 9 FP**, **AC 8 FP** |
+| C (static ∪ LLM)   | 0.485 | 1.000 | 0.653 | DP 1.0; WI/AC precision wrecked by the LLM's FPs |
+
+**Reading.** Static (A) is precise here; the local LLM (B) is wildly over-eager on WEBHOOK_INTEGRITY
+and AMOUNT_CURRENCY (17 false positives across 11 samples), and C = A∪LLM inherits every one — C's
+macro precision collapses to 0.485 while recall is perfect. This is precisely the failure mode the
+grounded/retrieval-augmented analyzer targets: **cut the LLM's false positives without losing recall.**
+The next phase measures C vs C+RAG on this same frozen split.
+
+**Caveats (honest):** n=11 is small — high variance; a single FP swings per-class precision a lot.
+These numbers are a real baseline, not a leaderboard claim. The dataset scale-up (≥240 samples) needs a
+Groq generation key and remains separate. `qwen2.5:7b` is a weak analyzer; a stronger hosted model would
+likely move B/C, but the point of C+RAG is to improve *whatever* analyzer is in use.
+
+## C vs C+RAG (grounded analyzer) — 2026-08-24, frozen test split (n=11)
+
+Measured C (static ∪ LLM) against C+RAG (static ∪ **grounded** LLM) on the SAME frozen test
+split, same analyzer (Ollama `qwen2.5:7b`), only grounding differs. `make eval` runs both and
+`payguard.eval.compare` prints the delta.
+
+| System | macro P | macro R | macro F1 | total FP | FP-cost (w=1) |
+|--------|--------:|--------:|---------:|---------:|--------------:|
+| A (static)      | 0.889 | 1.000 | 0.941 | 1  | 1  |
+| B (LLM only)    | 0.485 | 0.778 | 0.597 | 17 | 17 |
+| C (static ∪ LLM)| 0.485 | 1.000 | 0.653 | 17 | 17 |
+| **C+RAG**       | 0.485 | 1.000 | 0.653 | 17 | 17 |
+
+### Verdict: grounding did NOT beat the baseline on this corpus — kept behind a flag
+
+C+RAG is **identical** to C: false positives 17 → 17, macro precision 0.485 → 0.485, F1 0.653 →
+0.653. Retrieval surfaced the right evidence (a citable rule + hard-negative SAFE_PATTERNs for
+each class — verifiable in the AI-reasoning tab), but the local **qwen2.5:7b** analyzer did not
+change a single verdict because of it: it kept over-flagging WEBHOOK_INTEGRITY (9 FP) and
+AMOUNT_CURRENCY (8 FP) exactly as before, even when a SAFE_PATTERN for that class was in front of
+it. A direct probe confirmed this — the grounded model still flagged the *safe* dedup target as
+DUPLICATE_PAYMENT at 0.9.
+
+**Decision (ADR-013):** the grounded analyzer stays **off by default**, behind
+`PAYGUARD_ANALYZER=grounded`. It is not made the default because it does not improve precision,
+recall, or FP-cost here.
+
+**Likely reason.** A 7B instruction model is too weak to down-weight its prior when a retrieved
+counter-example contradicts it; it treats the reference block as background, not as a decision
+input. Grounding's premise (cut FPs without losing recall) is sound, but it needs (a) a stronger
+analyzer that actually attends to references, and/or (b) a larger, harder corpus where the
+baseline LLM makes *retrievable* mistakes. Recall was already 1.0 at C, so there was no recall to
+lose — the only lever was precision, and the weak model wouldn't move.
+
+**What would change the verdict (not done here, honestly):** rerun C vs C+RAG with a stronger
+hosted analyzer (the harness already supports it — set the hosted key), and on the scaled dataset
+(≥240 samples, which needs a Groq generation key). n=11 is small; a single FP swings a per-class
+precision. This is a real baseline and a real negative result, not a tuned one — nothing was
+tuned on the test split.
+
+## HEADLINE — System D (verifier) restores the precision the LLM costs
+
+**Runnable target set** (`examples/targets/`, n=7 — the executable targets where the sandbox can
+run; the frozen Flask test split is 0/11 runnable, so System D is measured here). System D counts
+a class as predicted-positive ONLY if a finding of that class reaches **VERIFIED** in the sandbox
+(per the brief). Ground-truth labels are each target's actual, sandbox-confirmable defects; safe
+controls have every guard present. Run: `PAYGUARD_OLLAMA_FALLBACK=1 python -m payguard.eval.verify_eval`.
+
+| System | macro P | macro R | macro F1 | total FP |
+|--------|--------:|--------:|---------:|---------:|
+| A (static)        | 0.833 | 1.000 | 0.889 | 2 |
+| C (static ∪ LLM)  | 0.750 | 1.000 | 0.841 | 3 |
+| **D (verified)**  | **1.000** | **1.000** | **1.000** | **0** |
+
+**The LLM widens the net and drops precision to 0.75 (it adds a false WEBHOOK_INTEGRITY on the
+signature-verifying dup target and a false DUPLICATE_PAYMENT on the safe control — 3 FPs total).
+The verifier restores precision to 1.0 by demanding sandbox proof: it removes every one of those 3
+false positives (each resolves NOT_REPRODUCED) while keeping every true defect (recall stays 1.0).
+This is the core reason PayGuard never ships an LLM finding as VERIFIED** (ADR-001).
+
+Per-target (from `eval/reports/test/D_runnable.json`):
+- `dup-fulfillment-node` — A/C say {DP, **WI**}; **D → {DP}** (the forged-webhook scenario is
+  rejected → the WI hypothesis is NOT_REPRODUCED and dropped).
+- `dup-fulfillment-node-safe` (SAFE) — C says {**DP**, **WI**}; **D → {}** (both hypotheses fail
+  to reproduce in the sandbox).
+- vulnerable targets — D confirms every real defect (DP/WI/AC all VERIFIED).
+
+### Does the LLM earn its place? Yes — static-blind coverage (with the numbers)
+
+The LLM's justification for the precision cost is catching semantic defects the static rules
+**cannot** — the `static_detectable=false` positives (wrong-field dedup, cross-module amount,
+dedup in an imported util, a call-chain fulfillment). Recall on that subset:
+
+| Subset | A (static) recall | C (static ∪ LLM) recall |
+|--------|------------------:|------------------------:|
+| static-blind positives, whole labeled corpus (n=10) | **0.400** (4/10) | **0.800** (8/10) |
+| static-blind positives, frozen test split (n=1)     | 1.000 (1/1) | 1.000 (1/1) |
+
+On the corpus-wide static-blind set the LLM **doubles** recall (0.40 → 0.80): it finds defects the
+rules miss. (The frozen test split contains only 1 static-blind positive — too few to conclude
+from — so the n=10 number is the meaningful one; neither is tuned on test.)
+
+The full architecture then reads end to end, each step measured:
+1. **Static** handles the obvious, precisely (A macro P=0.83 runnable / 0.889 frozen split).
+2. **The LLM adds coverage** on defects rules can't detect (static-blind recall 0.40 → 0.80)…
+3. …**at a precision cost** (C 0.75 runnable / 0.485 frozen split — it over-flags).
+4. **The verifier restores precision** to 1.0 by demanding sandbox proof (D: FP 3 → 0, recall
+   unchanged) — why an LLM finding is never shipped as VERIFIED (ADR-001).
+
+The LLM earns its place, and the verifier is what makes it *safe* to include. `PAYGUARD_LLM=off`
+is offered for static-only runs (determinism/speed), not because the LLM fails to help — it does.

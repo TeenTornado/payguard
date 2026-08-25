@@ -1,0 +1,21 @@
+name: amount-mismatch-node
+defect_class: AMOUNT_CURRENCY
+scenario: AC-1
+
+runtime: node20
+install: npm install --no-audit --no-fund
+start: node app.js
+port_env: PORT
+health: GET /health
+
+charge_endpoint:
+  method: POST
+  path: /charge
+  request_template:
+    intended_amount_inr: 1500
+
+env_map:
+  key_id: RAZORPAY_KEY_ID
+  key_secret: RAZORPAY_KEY_SECRET
+  webhook_secret: RAZORPAY_WEBHOOK_SECRET
+  base_url: RAZORPAY_BASE_URL

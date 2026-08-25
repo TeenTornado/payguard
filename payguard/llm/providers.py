@@ -19,7 +19,7 @@ import logging
 import os
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import anthropic
 import openai
@@ -54,6 +54,10 @@ _DEFAULT_MAX_RETRIES = 5
 OPENROUTER_MAX_RETRIES = 1
 
 
+def _flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "on", "yes"}
+
+
 def _parse_retry_after(exc: Exception) -> float | None:
     """Extract Retry-After seconds from a 429 response, or None."""
     headers = getattr(getattr(exc, "response", None), "headers", None)
@@ -83,10 +87,13 @@ class OpenAICompatProvider:
         self.model = model
         self._max_tokens = max_tokens
         self._max_retries = max_retries
+        # Bounded timeout: a stuck local model (Ollama) must not hang the eval/worker forever.
+        timeout = float(os.environ.get("PAYGUARD_LLM_TIMEOUT", "180"))
         self._client = openai.OpenAI(
             base_url=base_url,
             api_key=api_key,
             max_retries=0,  # we handle retries ourselves
+            timeout=timeout,
         )
         self._rate_limiter: RateLimiter | NoopRateLimiter = (
             RateLimiter(rpm, tpm) if (rpm < 9999 or tpm < 9_999_999) else NoopRateLimiter()
@@ -191,7 +198,7 @@ class AnthropicProvider:
         self._rate_limiter: NoopRateLimiter = NoopRateLimiter()
 
     def complete(self, system: str, user: str) -> CompletionResult:
-        for attempt in range(_MAX_RETRIES):
+        for attempt in range(_DEFAULT_MAX_RETRIES):
             try:
                 msg = self._client.messages.create(
                     model=self.model,
@@ -210,8 +217,8 @@ class AnthropicProvider:
                     base_url="https://api.anthropic.com",
                 )
             except anthropic.RateLimitError as exc:
-                if attempt == _MAX_RETRIES - 1:
-                    raise RateLimitedError("RATE_LIMITED after {_MAX_RETRIES} attempts") from exc
+                if attempt == _DEFAULT_MAX_RETRIES - 1:
+                    raise RateLimitedError("RATE_LIMITED after {_DEFAULT_MAX_RETRIES} attempts") from exc
                 retry_after = _parse_retry_after(exc) or (2 ** attempt + random.uniform(0, 1))
                 time.sleep(retry_after)
         raise RateLimitedError("RATE_LIMITED: exhausted retries")
@@ -233,8 +240,9 @@ def load_provider(
     Build a provider from explicit args or from a named profile in config/llm_limits.yml.
     Returns None if the provider is not configured (missing key).
     """
-    import yaml
     from pathlib import Path
+
+    import yaml
 
     cfg: dict = {}
     if profile:
@@ -305,6 +313,18 @@ def build_analyzer_provider() -> OpenAICompatProvider | AnthropicProvider | None
             rpm=fb_rpm, tpm=fb_tpm, max_tokens=8192,
             max_retries=OPENROUTER_MAX_RETRIES,
         )
+
+    # Opt-in local fallback: Ollama. Keeps the console analyzer AVAILABLE offline (no key)
+    # so it never shows "unavailable" just because a hosted key is absent. Gated by
+    # PAYGUARD_OLLAMA_FALLBACK so it does NOT change eval semantics — the eval systems must
+    # still report UNAVAILABLE without a hosted key (reproducibility). The worker/demo set
+    # the flag; eval and tests do not. If Ollama isn't running the scan degrades to
+    # static-only — never a silent gap.
+    if _flag("PAYGUARD_OLLAMA_FALLBACK"):
+        ollama = load_provider(profile="ollama", max_retries=1)
+        if ollama is not None:
+            logger.info("Analyzer falling through to local Ollama (%s)", ollama.model)
+            return ollama
     return None
 
 

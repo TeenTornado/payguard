@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
 from payguard.gateway.emulator import RazorpayEmulator
+from payguard.shared.chaos import read_chaos
 from payguard.shared.config import validate_key_prefix
 
 app = FastAPI(title="PayGuard Gateway", version="0.3.0")
@@ -221,6 +222,16 @@ def _dict_to_payment(d: dict):
 
 
 # ─── Chaos mode ──────────────────────────────────────────────────────────────
+#
+# Two sources of chaos, both server-side (the gateway is the dependency being made to
+# fail, so injection belongs here — not in the verifier client):
+#   1. The shared cross-process sentinel (payguard.shared.chaos). When its ``gateway``
+#      switch is on, every payment/verification call (/v1/*) returns a deterministic 503.
+#      Deterministic so the verifier's bounded-retry → ERROR path is reproducible in
+#      tests and demos.
+#   2. A legacy in-process toggle (/_test/chaos) kept for older harnesses, which injects
+#      random 5xx / latency.
+# /_test/* and /healthz are never chaos-gated so state can still be inspected.
 
 _chaos_active = False
 
@@ -233,11 +244,26 @@ async def toggle_chaos(request: Request) -> dict:
     return {"chaos": _chaos_active}
 
 
+def _chaos_exempt(path: str) -> bool:
+    return path.startswith("/_test") or path == "/healthz"
+
+
 @app.middleware("http")
 async def chaos_middleware(request: Request, call_next):
     import asyncio
     import random
-    if _chaos_active and not request.url.path.startswith("/_test"):
+
+    path = request.url.path
+    if _chaos_exempt(path):
+        return await call_next(request)
+
+    if read_chaos().gateway:
+        return JSONResponse(
+            content={"error": {"code": "GATEWAY_UNAVAILABLE", "description": "Chaos: gateway down"}},
+            status_code=503,
+        )
+
+    if _chaos_active:
         r = random.random()
         if r < 0.2:
             return JSONResponse(

@@ -144,6 +144,8 @@ _DP_R3_DEDUP = re.compile(
     r"\b(already.*processed|already.*handled|already.*seen|"
     r"mark.*processed|set.*processed|event_log|processed_events|"
     r"ProcessedEvent|EventLog|idempoten|"
+    r"processed[_-]?events?|seen[_-]?events?|"  # snake/camel Set names
+    r"(has|includes|add)\s*\(\s*event[_-]?id|"  # Set/collection ops keyed on the event id
     r"(find|get|fetch|lookup|exists|filter|query)\s*\(.*event_id|"
     r"(find|get|fetch|lookup|exists|filter|query)\s*\(.*payment_id)\b",
     re.I,
@@ -354,7 +356,9 @@ def check_wi_r4(unit: PaymentUnit) -> RuleHit | None:
 _AC_R1_RUPEE_VAR = re.compile(
     r"\b(amount_inr|rupees?|inr_amount|price_inr|cost_inr|value_inr)\b", re.I
 )
-_AC_R1_CREATE = re.compile(r"\b(orders?\.create|/v1/orders)\b", re.I)
+# `/v1/orders` in a URL string has no leading word boundary (it follows a quote or `}`),
+# so match it without one; `orders.create` keeps its boundary.
+_AC_R1_CREATE = re.compile(r"\borders?\.create\b|/v1/orders\b", re.I)
 _AC_R1_PAISE_CONV = re.compile(r"\*\s*100\b|\bpaise\b|\bto_paise\b|\bint\s*\(\s*.*\*\s*100")
 _AC_R1_DOUBLE_CONV = re.compile(r"\*\s*100\s*\*\s*100|\*100\s*\*100")
 

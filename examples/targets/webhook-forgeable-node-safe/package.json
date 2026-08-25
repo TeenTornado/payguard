@@ -1,0 +1,9 @@
+{
+  "name": "webhook-forgeable-node-safe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Safe control: webhook signature verification (WI-1 NOT_REPRODUCED).",
+  "main": "app.js",
+  "scripts": { "start": "node app.js" },
+  "dependencies": { "express": "^4.21.0" }
+}

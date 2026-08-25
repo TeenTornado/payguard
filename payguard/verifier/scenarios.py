@@ -29,6 +29,7 @@ class VerificationOutcome:
     proof_summary: str = ""
     measured_impact_paise: int | None = None
     error_code: str | None = None
+    attempts: int = 1  # total gateway attempts made (incl. retries)
 
 
 async def _probe_state(probe_url: str | None, client: httpx.AsyncClient) -> dict | None:

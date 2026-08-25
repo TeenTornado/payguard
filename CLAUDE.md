@@ -97,3 +97,6 @@ Terse. No cheerleading. What works (with the command), what is untested, numbers
 - ADR-008: Gateway = EMULATE mode + recording FORWARD_TEST proxy with credential injection
 - ADR-009: Docker sandbox + routing tiers (RAZORPAY_BASE_URL Tier A, transparent intercept Tier B)
 - ADR-010: MEASURED vs ESTIMATED exposure, always labeled, never conflated
+- ADR-011: Two-tier (curated rules + train-split examples) grounding KB
+- ADR-012: Retrieval corpus is split-safe (TRAIN examples only)
+- ADR-013: Retrieval scoped ONLY to grounding the analyzer

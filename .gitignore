@@ -20,5 +20,19 @@ node_modules/
 !dataset/llm_cache/.gitkeep
 # Legacy reports directory (pre-v2); new reports go to eval/reports/dev/ and eval/reports/test/
 reports/
+# but keep the FROZEN test-split eval reports (auditable freeze ledger). dev/ stays ignored.
+!eval/reports/
+eval/reports/dev/
 *.log
 docker-compose.override.yml
+
+# web build artifacts
+web/tsconfig.tsbuildinfo
+web/next-env.d.ts
+
+# sandbox target artifacts
+examples/targets/*/node_modules/
+examples/targets/*/.sandbox.log
+
+# KB vector cache (rebuilt from dataset/kb_index/chunks.jsonl, which IS committed)
+dataset/kb_index/chroma/

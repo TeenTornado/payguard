@@ -36,6 +36,7 @@ dependencies = [
     "click==8.1.8",
     "rich==13.9.4",
     "tenacity==9.0.0",
+    "razorpay==1.4.2",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +51,13 @@ dev = [
     "aiosqlite==0.20.0",
     "greenlet==3.1.1",
     # gitleaks installed via brew/binary, not pip
+]
+
+# Retrieval-augmented (grounded) analyzer. Optional: the base app never imports these; the
+# grounded path is opt-in (PAYGUARD_ANALYZER=grounded). `uv pip install -e ".[rag]"`.
+rag = [
+    "chromadb==1.5.9",
+    "rank_bm25==0.2.2",
 ]
 
 [project.scripts]

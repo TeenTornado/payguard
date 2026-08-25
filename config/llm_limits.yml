@@ -16,11 +16,11 @@ profiles:
     rpm: 25
     tpm: 10000
 
-  # Local fallback for offline development
+  # Always-on local fallback (offline, no key). Model must be one `ollama list` shows.
   ollama:
     base_url: "http://localhost:11434/v1"
     api_key: "ollama"
-    model: "qwen2.5-coder:7b"
+    model: "qwen2.5:7b"
     rpm: 999
     tpm: 999999
 
